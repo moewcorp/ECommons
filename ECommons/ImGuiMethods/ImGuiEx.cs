@@ -1046,6 +1046,18 @@ public static unsafe partial class ImGuiEx
             return Encoding.UTF8.GetBytes(chars, s.Length, utf8Bytes, utf8ByteCount);
         }
     }
+    
+    public static void InputIntBounded(string label, ref int value, int minValue, int maxValue)
+    {
+        if (ImGui.InputInt(label, ref value))
+        {
+            if (value > maxValue)
+                value = maxValue;
+
+            if (value < minValue)
+                value = minValue;
+        }
+    }
 }
 
 [StructLayout(LayoutKind.Explicit)]
