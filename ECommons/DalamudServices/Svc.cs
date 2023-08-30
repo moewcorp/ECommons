@@ -1,6 +1,7 @@
 ﻿using Dalamud.Data;
 using Dalamud.Game;
 using Dalamud.Game.ClientState;
+using Dalamud.Game.ClientState.Aetherytes;
 using Dalamud.Game.ClientState.Buddy;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Fates;
@@ -30,6 +31,7 @@ namespace ECommons.DalamudServices;
 public class Svc
 {
     public static DalamudPluginInterface PluginInterface { get; private set; }
+    public static AetheryteList Aetherytes { get; private set; }
     public static BuddyList Buddies { get; private set; }
     public static ChatGui Chat { get; private set; }
     public static ChatHandlers ChatHandlers { get; private set; }
@@ -69,6 +71,9 @@ public class Svc
         {
             pi.Create<SDalamudPluginInterface>();
             PluginInterface = SDalamudPluginInterface.PluginInterface;
+
+            pi.Create<SAetheryteList>();
+            Aetherytes = SAetheryteList.AetheryteList;
 
             pi.Create<SBuddyList>();
             Buddies = SBuddyList.Buddies;

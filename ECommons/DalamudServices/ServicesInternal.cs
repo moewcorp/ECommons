@@ -1,6 +1,7 @@
 ﻿using Dalamud.Data;
 using Dalamud.Game;
 using Dalamud.Game.ClientState;
+using Dalamud.Game.ClientState.Aetherytes;
 using Dalamud.Game.ClientState.Buddy;
 using Dalamud.Game.ClientState.Conditions;
 using Dalamud.Game.ClientState.Fates;
@@ -23,6 +24,11 @@ using Dalamud.IoC;
 using Dalamud.Plugin;
 
 namespace ECommons.DalamudServices;
+
+internal class SAetheryteList
+{
+    [PluginService] internal static AetheryteList AetheryteList { get; private set; }
+}
 
 internal class SDalamudPluginInterface
 {
