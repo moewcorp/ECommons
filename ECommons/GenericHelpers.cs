@@ -31,11 +31,15 @@ using System.Threading;
 using ECommons.Interop;
 using System.Drawing;
 using ImGuiScene;
+using Dalamud.Game.ClientState.Objects;
+using Dalamud.Plugin.Services;
+using Dalamud.Game.Text;
 
 namespace ECommons;
 
 public static unsafe class GenericHelpers
 {
+
     public static T[] Together<T>(this T[] array, params T[] additionalValues)
     {
         return array.Union(additionalValues).ToArray();
@@ -500,6 +504,20 @@ public static unsafe class GenericHelpers
         else
         {
             hashSet.Add(value);
+            return true;
+        }
+    }
+
+    public static bool Toggle<T>(this List<T> list, T value)
+    {
+        if (list.Contains(value))
+        {
+            list.RemoveAll(x => x.Equals(value));
+            return false;
+        }
+        else
+        {
+            list.Add(value);
             return true;
         }
     }
