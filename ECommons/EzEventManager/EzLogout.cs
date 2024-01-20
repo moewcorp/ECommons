@@ -15,13 +15,15 @@ public class EzLogout : IDisposable
     public EzLogout(Action @delegate)
     {
         Delegate = @delegate ?? throw new ArgumentNullException(nameof(@delegate));
-        //Svc.ClientState.Logout += Delegate;
+        Svc.ClientState.Logout += LogoutAction;
         Registered.Add(this);
     }
 
     public void Dispose()
     {
-        //Svc.ClientState.Logout -= Delegate;
+        Svc.ClientState.Logout -= LogoutAction;
         Registered.Remove(this);
     }
+
+    public void LogoutAction(object sender, EventArgs e) => Delegate.Invoke();
 }

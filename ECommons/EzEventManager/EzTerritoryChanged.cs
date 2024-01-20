@@ -15,13 +15,15 @@ public class EzTerritoryChanged : IDisposable
     public EzTerritoryChanged(Action<ushort> @delegate)
     {
         Delegate = @delegate ?? throw new ArgumentNullException(nameof(@delegate));
-        //Svc.ClientState.TerritoryChanged += Delegate;
+        Svc.ClientState.TerritoryChanged += TerritoryChangedAction;
         Registered.Add(this);
     }
 
     public void Dispose()
     {
-        //Svc.ClientState.TerritoryChanged -= Delegate;
+        Svc.ClientState.TerritoryChanged -= TerritoryChangedAction;
         Registered.Remove(this);
     }
+
+    public void TerritoryChangedAction(object sender, ushort territory) => Delegate.Invoke(territory);
 }
