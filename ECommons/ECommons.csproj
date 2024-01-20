@@ -2,13 +2,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<Authors>NightmareXIV</Authors>
-		<Version>2.0.0.7</Version>
+		<Version>2.1.0.7</Version>
 	</PropertyGroup>
 
 	<PropertyGroup>
 		<TargetFramework>net7.0-windows</TargetFramework>
 		<Platforms>x64</Platforms>
-		<LangVersion>latest</LangVersion>
+		<LangVersion>preview</LangVersion>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<ProduceReferenceAssembly>false</ProduceReferenceAssembly>
 		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
@@ -19,6 +19,8 @@
     <Optimize>True</Optimize>
       <UseWindowsForms>true</UseWindowsForms>
       <EnableWindowsTargeting>true</EnableWindowsTargeting>
+      <IsTrimmable>false</IsTrimmable>
+      <Nullable>enable</Nullable>
 	</PropertyGroup>
 
 	<PropertyGroup Label="Documentation">
@@ -40,6 +42,10 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <None Include="..\..\.editorconfig" Link=".editorconfig" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<Reference Include="Newtonsoft.Json">
 			<HintPath>$(DalamudLibPath)Newtonsoft.Json.dll</HintPath>
 			<Private>False</Private>
@@ -48,6 +54,10 @@
 			<HintPath>$(DalamudLibPath)Dalamud.dll</HintPath>
 			<Private>False</Private>
 		</Reference>
+      <Reference Include="Dalamud.Common">
+          <HintPath>$(DalamudLibPath)Dalamud.Common.dll</HintPath>
+          <Private>False</Private>
+      </Reference>
 		<Reference Include="ImGui.NET">
 			<HintPath>$(DalamudLibPath)ImGui.NET.dll</HintPath>
 			<Private>False</Private>

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 
 namespace ECommons.Automation;
+#nullable disable
 
 public unsafe static class MacroManager
 {
@@ -43,7 +44,7 @@ public unsafe static class MacroManager
             using var macro = new Macro(macroPtr, string.Empty, commands.ToArray());
             Marshal.StructureToPtr(macro, macroPtr, false);
 
-            RaptureShellModule.Instance->ExecuteMacro((FFXIVClientStructs.FFXIV.Client.UI.Misc.RaptureMacroModule.Macro*)macroPtr);
+            RaptureShellModule.Instance()->ExecuteMacro((FFXIVClientStructs.FFXIV.Client.UI.Misc.RaptureMacroModule.Macro*)macroPtr);
         });
 
         Marshal.FreeHGlobal(macroPtr);
