@@ -32,7 +32,7 @@ public unsafe static class Callback
     public static void InstallHook()
     {
         if (FireCallback == null) Initialize();
-        AtkUnitBase_FireCallbackHook ??= Svc.Hook.HookFromSignature<AtkUnitBase_FireCallbackDelegate>(Sig, AtkUnitBase_FireCallbackDetour);
+        AtkUnitBase_FireCallbackHook ??= Hook<AtkUnitBase_FireCallbackDelegate>.FromAddress(Svc.SigScanner.ScanText(Sig), AtkUnitBase_FireCallbackDetour);
         if (AtkUnitBase_FireCallbackHook.IsEnabled)
         {
             PluginLog.Error("AtkUnitBase_FireCallbackHook is already enabled");

@@ -3,6 +3,7 @@ using ECommons.Logging;
 using ECommons.DalamudServices;
 using Dalamud;
 using System.Linq;
+using System;
 
 namespace ECommons.EzHookManager;
 #nullable disable
@@ -14,7 +15,7 @@ namespace ECommons.EzHookManager;
 /// - Increasing transparency to developer, indicating that Dalamud's disable method doesn't completely disables it and just pauses detour execution.
 /// </summary>
 /// <typeparam name="T"></typeparam>
-public class EzHook<T> where T:System.Delegate
+public class EzHook<T> where T: System.Delegate
 {
     public nint Address { get; private set; }
     public T Detour { get; private set; }
@@ -52,7 +53,7 @@ public class EzHook<T> where T:System.Delegate
             byte[] orig = null;
             Log($"Creating hook {typeof(T).FullName} at {Address:X16}");
             if (EzHookCommon.TrackMemory > 0) SafeMemory.ReadBytes(Address, EzHookCommon.TrackMemory, out orig);
-            HookDelegate = Svc.Hook.HookFromAddress(Address, Detour);
+            HookDelegate = Hook<T>.FromAddress(Address, Detour);
             HookDelegate.Enable();
             if (EzHookCommon.TrackMemory > 0 && SafeMemory.ReadBytes(Address, EzHookCommon.TrackMemory, out var changed) && orig != null)
             {

@@ -1,4 +1,5 @@
-﻿using Dalamud.IoC;
+﻿using Dalamud.Game;
+using Dalamud.IoC;
 using Dalamud.Plugin;
 using Dalamud.Plugin.Services;
 
@@ -17,7 +18,7 @@ internal class MicroServices
     //[PluginService] static internal DataManager Data { get; private set; }
     //[PluginService] static internal FateTable Fates { get; private set; }
     //[PluginService] static internal FlyTextGui FlyText { get; private set; }
-    [PluginService] static internal IFramework Framework { get; private set; }
+    [PluginService] static internal Framework Framework { get; private set; }
     //[PluginService] static internal GameGui GameGui { get; private set; }
     //[PluginService] static internal GameNetwork GameNetwork { get; private set; }
     //[PluginService] static internal JobGauges Gauges { get; private set; }

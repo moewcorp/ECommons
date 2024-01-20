@@ -48,7 +48,7 @@ public static unsafe class ActionEffect
         {
             if (Svc.SigScanner.TryScanText(Sig, out var ptr))
             {
-                ProcessActionEffectHook = Svc.Hook.HookFromAddress<ProcessActionEffect>(ptr, ProcessActionEffectDetour);
+                ProcessActionEffectHook = Hook<ProcessActionEffect>.FromAddress(ptr, ProcessActionEffectDetour);
                 Enable();
                 PluginLog.Information($"Requested Action Effect hook and successfully initialized");
             }

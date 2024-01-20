@@ -5,6 +5,7 @@ using ECommons.DalamudServices;
 using System;
 using ECommons.DalamudServices.Legacy;
 using ECommons.Logging;
+using SignatureHelper = Dalamud.Utility.Signatures.SignatureHelper;
 
 namespace ECommons.Automation;
 #nullable disable

@@ -37,7 +37,7 @@ public static class SendAction
         if (Svc.SigScanner.TryScanText(Sig, out var ptr))
         {
             Callback = fullParamsCallback;
-            SendActionHook = Svc.Hook.HookFromAddress<SendActionDelegate>(ptr, SendActionDetour);
+            SendActionHook = Hook<SendActionDelegate>.FromAddress(ptr, SendActionDetour);
             Enable();
             PluginLog.Information($"Requested SendAction hook and successfully initialized");
         }

@@ -9,7 +9,7 @@ public static class EzHookCommon
 
     internal static void DisposeAll()
     {
-        RegisteredHooks.ToArray().Each(x => x.Dispose());
+        //RegisteredHooks.ToArray().Each(x => x.Dispose());
         RegisteredHooks = null!;
     }
 

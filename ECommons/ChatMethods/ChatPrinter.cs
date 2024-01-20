@@ -12,7 +12,7 @@ public static class ChatPrinter
 
     public static void PrintColored(UIColor col, string text)
     {
-        Svc.Chat.Print(new()
+        Svc.Chat.PrintChat(new()
         {
             Message = new SeStringBuilder().AddUiForeground(text, (ushort)col).Build()
         });

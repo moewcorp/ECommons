@@ -1,6 +1,7 @@
 ﻿using Dalamud.Interface.Internal;
 using ECommons.DalamudServices;
 using ECommons.Logging;
+using ImGuiScene;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -100,7 +101,7 @@ public class ThreadLoadImageHandler
 
                                         try
                                         {
-                                            texture = Svc.PluginInterface.UiBuilder.LoadImage(conversion(content));
+                                            texture = (IDalamudTextureWrap)Svc.PluginInterface.UiBuilder.LoadImage(conversion(content));
                                             if (texture != null) break;
                                         }
                                         catch (Exception ex)
@@ -114,7 +115,7 @@ public class ThreadLoadImageHandler
                                 {
                                     if (File.Exists(keyValuePair.Key))
                                     {
-                                        keyValuePair.Value.texture = Svc.PluginInterface.UiBuilder.LoadImage(keyValuePair.Key);
+                                        keyValuePair.Value.texture = (IDalamudTextureWrap)Svc.PluginInterface.UiBuilder.LoadImage(keyValuePair.Key);
                                     }
                                     else
                                     {

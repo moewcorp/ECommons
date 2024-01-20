@@ -1,7 +1,6 @@
 ﻿using Dalamud.Interface;
 using Dalamud.Interface.Colors;
 using Dalamud.Interface.Internal.Notifications;
-using Dalamud.Interface.Utility;
 using ECommons.DalamudServices;
 using ECommons.Logging;
 using ECommons.Schedulers;

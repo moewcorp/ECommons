@@ -1,5 +1,4 @@
 ﻿using Dalamud.Game.Command;
-using Dalamud.Interface.Utility;
 using ECommons.Logging;
 using Dalamud.Plugin;
 using ECommons.ImGuiMethods;
@@ -12,6 +11,7 @@ using System.Net.Http;
 using System.Numerics;
 using System.Reflection;
 using System.Threading.Tasks;
+using Dalamud.Interface;
 #nullable disable
 
 namespace ECommons.Loader;

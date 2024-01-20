@@ -92,7 +92,7 @@ public static class ProperOnLogin
         }
     }
 
-    static void OnLoginAvailable()
+    static void OnLoginAvailable(object sender, EventArgs e)
     {
         Svc.Framework.Update += OnUpdateAvailable;
         PluginLog.Debug("Registering ProperOnLogin Available event's framework update");
@@ -119,7 +119,7 @@ public static class ProperOnLogin
         }
     }
 
-    static void OnLoginInteractable()
+    static void OnLoginInteractable(object sender, EventArgs e)
     {
         Svc.Framework.Update += OnUpdateInteractable;
         PluginLog.Debug("Registering ProperOnLogin Interactable event's framework update");

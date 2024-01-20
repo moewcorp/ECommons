@@ -54,7 +54,7 @@ public static class MapEffect
         if (Svc.SigScanner.TryScanText(Sig, out var ptr))
         {
             Callback = fullParamsCallback;
-            ProcessMapEffectHook = Svc.Hook.HookFromAddress<ProcessMapEffect>(ptr, ProcessMapEffectDetour);
+            ProcessMapEffectHook = Hook<ProcessMapEffect>.FromAddress(ptr, ProcessMapEffectDetour);
             Enable();
             PluginLog.Information($"Requested MapEffect hook and successfully initialized");
         }
