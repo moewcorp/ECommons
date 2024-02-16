@@ -16,29 +16,199 @@ using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Diagnostics.CodeAnalysis;
-using ValueType = FFXIVClientStructs.FFXIV.Component.GUI.ValueType;
-using ECommons.ExcelServices.TerritoryEnumeration;
 using Newtonsoft.Json;
 using FFXIVClientStructs.FFXIV.Client.System.String;
-using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 using Dalamud.Memory;
 using Dalamud.Game.ClientState.Objects.Types;
 using ECommons.MathHelpers;
 using PInvoke;
 using System.Windows.Forms;
-using System.Threading;
 using ECommons.Interop;
-using System.Drawing;
-using ImGuiScene;
-using Dalamud.Game.ClientState.Objects;
-using Dalamud.Plugin.Services;
-using Dalamud.Game.Text;
+using System.Globalization;
+#nullable disable
 
 namespace ECommons;
 
 public static unsafe class GenericHelpers
 {
+    public static bool TryParseByteArray(string input, out byte[] output)
+    {
+        var str = input.Split(" ");
+        output = new byte[str.Length];
+        for (int i = 0; i < str.Length; i++)
+        {
+            if (!byte.TryParse(str[i], NumberStyles.HexNumber, null, out output[i]))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static string GetCallStackID(int maxFrames = 3) 
+    {
+        try
+        {
+            if (maxFrames == 0)
+            {
+                maxFrames = int.MaxValue;
+            }
+            else
+            {
+                maxFrames--;
+            }
+            var stack = new StackTrace().GetFrames();
+            if (stack.Length > 1)
+            {
+                return stack[1..Math.Min(stack.Length, maxFrames)].Select(x => x.GetMethod() == null ? "<unknown>" : $"{x.GetMethod().DeclaringType?.FullName}.{x.GetMethod().Name}").Join(" <- ");
+            }
+        }
+        catch(Exception e)
+        {
+            e.Log();
+        }
+        return "";
+    }
+
+    /// <summary>
+    /// Copies text into user's clipboard using WinForms. Does not throws exceptions.
+    /// </summary>
+    /// <param name="text">Text to copy</param>
+    /// <param name="silent">Whether to display success/failure popup</param>
+    /// <returns>Whether operation succeeded</returns>
+    public static bool Copy(string text, bool silent = false)
+    {
+        try
+        {
+            if (text.IsNullOrEmpty())
+            {
+                Clipboard.Clear();
+                if (!silent) Notify.Success("Clipboard cleared");
+            }
+            else
+            {
+                Clipboard.SetText(text);
+                if (!silent) Notify.Success("Text copied to clipboard");
+            }
+            return true;
+        }
+        catch(Exception e)
+        {
+            if (!silent)
+            {
+                Notify.Error($"Error copying to clipboard:\n{e.Message}\nPlease try again");
+            }
+            PluginLog.Warning($"Error copying to clipboard:");
+            e.LogWarning();
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// Reads text from user's clipboard
+    /// </summary>
+    /// <param name="silent">Whether to display popup when error occurs.</param>
+    /// <returns>Contents of the clipboard; null if clipboard couldn't be read.</returns>
+    public static string Paste(bool silent = false)
+    {
+        try
+        {
+            return Clipboard.GetText();
+        }
+        catch(Exception e)
+        {
+            if (!silent)
+            {
+                Notify.Error($"Error pasting from clipboard:\n{e.Message}\nPlease try again");
+            }
+            PluginLog.Warning($"Error pasting from clipboard:");
+            e.LogWarning();
+            return null;
+        }
+    }
+
+    public static T GetOrDefault<T>(this IList<T> List, int index)
+    {
+        if (index < List.Count) return List[index];
+        return default;
+    }
+
+    public static T GetOrDefault<T>(this T[] Array, int index)
+    {
+        if (index < Array.Length) return Array[index];
+        return default;
+    }
+
+    public static bool TryDequeue<T>(this IList<T> List, out T result)
+    {
+        if(List.Count > 0)
+        {
+            result = List[0];
+            List.RemoveAt(0);
+            return true;
+        }
+        else
+        {
+            result = default;
+            return false;
+        }
+    }
+
+    public static T Dequeue<T>(this IList<T> List)
+    {
+        if(List.TryDequeue(out var ret))
+        {
+            return ret;
+        }
+        throw new InvalidOperationException("Sequence contains no elements");
+    }
+
+    public static T DequeueOrDefault<T>(this IList<T> List)
+    {
+        if (List.Count > 0)
+        {
+            var ret = List[0];
+            List.RemoveAt(0);
+            return ret;
+        }
+        else
+        {
+            return default;
+        }
+    }
+
+    public static T DequeueOrDefault<T>(this Queue<T> Queue)
+    {
+        if(Queue.Count > 0)
+        {
+            return Queue.Dequeue();
+        }
+        return default;
+    }
+
+    public static int IndexOf<T>(this IEnumerable<T> values, Predicate<T> predicate)
+    {
+        var ret = -1;
+        foreach(var v in values)
+        {
+            ret++;
+            if(predicate(v))
+            {
+                return ret;
+            }
+        }
+        return -1;
+    }
+    
+    public static bool ContainsIgnoreCase(this IEnumerable<string> haystack, string needle)
+    {
+        foreach(var x in haystack)
+        {
+            if (x.EqualsIgnoreCase(needle)) return true;
+        }
+        return false;
+    }
 
     public static T[] Together<T>(this T[] array, params T[] additionalValues)
     {
@@ -143,6 +313,23 @@ public static unsafe class GenericHelpers
         {
             return Bitmask.IsBitSet(User32.GetAsyncKeyState((int)key), 15);
         }
+    }
+    public static bool IsKeyPressed(IEnumerable<LimitedKeys> keys)
+    {
+        foreach (var x in keys)
+        {
+            if (IsKeyPressed(x)) return true;
+        }
+        return false;
+    }
+
+    public static bool IsKeyPressed(IEnumerable<Keys> keys)
+    {
+        foreach (var x in keys)
+        {
+            if (IsKeyPressed(x)) return true;
+        }
+        return false;
     }
 
     /// <summary>
@@ -488,7 +675,7 @@ public static unsafe class GenericHelpers
     }
 
     /// <summary>
-    /// Adds <paramref name="value"/> into <see cref="HashSet"/> if it doesn't exists yet or removes if it exists.
+    /// Adds <paramref name="value"/> into HashSet if it doesn't exists yet or removes if it exists.
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <param name="hashSet"></param>
@@ -631,6 +818,10 @@ public static unsafe class GenericHelpers
     public static void Log(this Exception e)
     {
         PluginLog.Error($"{e.Message}\n{e.StackTrace ?? ""}");
+    }
+    public static void LogVerbose(this Exception e)
+    {
+        PluginLog.LogVerbose($"{e.Message}\n{e.StackTrace ?? ""}");
     }
 
     public static void Log(this Exception e, string ErrorMessage)
@@ -1007,6 +1198,23 @@ public static unsafe class GenericHelpers
             || (col.A == 0xFF && col.R == 0xEE && col.G == 0xE1 && col.B == 0xC5);
     }
 
+    public static void MoveItemToPosition<T>(List<T> list, Func<T, bool> sourceItemSelector, int targetedIndex)
+    {
+        int sourceIndex = -1;
+        for (int i = 0; i < list.Count; i++)
+        {
+            if (sourceItemSelector(list[i]))
+            {
+                sourceIndex = i;
+                break;
+            }
+        }
+        if (sourceIndex == targetedIndex) return;
+        var item = list[sourceIndex];
+        list.RemoveAt(sourceIndex);
+        list.Insert(targetedIndex, item);
+    }
+
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [Obsolete($"Use MemoryHelper.ReadSeString")]
@@ -1024,4 +1232,5 @@ public static unsafe class GenericHelpers
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [Obsolete($"Use MemoryHelper.ReadRaw")]
     public static byte[] ReadRaw(IntPtr memoryAddress, int length) => MemoryHelper.ReadRaw(memoryAddress, length);
+
 }
