@@ -34,6 +34,17 @@ namespace ECommons;
 
 public static unsafe class GenericHelpers
 {
+    public static T SafeSelect<T>(this IList<T> list, int index)
+    {
+        if (index < 0 || index >= list.Count) return default;
+        return list[index];
+    }
+    public static T SafeSelect<T>(this T[] list, int index)
+    {
+        if (index < 0 || index >= list.Length) return default;
+        return list[index];
+    }
+
     public static bool TryParseByteArray(string input, out byte[] output)
     {
         var str = input.Split(" ");
@@ -128,6 +139,25 @@ public static unsafe class GenericHelpers
             e.LogWarning();
             return null;
         }
+    }
+
+    public static string ToHexString(this IEnumerable<byte> bytes)
+    {
+        var first = true;
+        var sb = new StringBuilder();
+        foreach(var x in bytes)
+        {
+            if (first)
+            {
+                first = false;
+            }
+            else
+            {
+                sb.Append(' ');
+            }
+            sb.Append($"{x:X2}");
+        }
+        return sb.ToString();
     }
 
     public static T GetOrDefault<T>(this IList<T> List, int index)
