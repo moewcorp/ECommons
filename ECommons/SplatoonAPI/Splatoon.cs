@@ -70,6 +70,13 @@ public static class Splatoon
                 OnConnect?.Invoke();
                 PluginLog.Information("Successfully connected to Splatoon.");
             }
+            else if (DalamudReflector.TryGetDalamudPlugin("SplatoonX", out var plugin2, false, true) && (bool)plugin2.GetType().GetField("Init").GetValue(plugin2))
+            {
+                Instance = plugin2;
+                Version++;
+                OnConnect?.Invoke();
+                PluginLog.Information("Successfully connected to Splatoon.");
+            }
             else
             {
                 throw new Exception("Splatoon is not initialized");
