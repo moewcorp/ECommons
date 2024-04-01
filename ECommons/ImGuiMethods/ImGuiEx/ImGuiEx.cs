@@ -23,6 +23,24 @@ namespace ECommons.ImGuiMethods;
 
 public static unsafe partial class ImGuiEx
 {
+    public static bool Selectable(Vector4? color, string id)
+    {
+        var ret = ImGuiEx.TreeNode(color, id, ImGuiTreeNodeFlags.NoTreePushOnOpen | ImGuiTreeNodeFlags.Leaf);
+        return ret;
+    }
+
+    public static bool Selectable(string id) => Selectable(null, id);
+
+    public static bool Selectable(string id, ref bool selected) => Selectable(null, id, ref selected);
+
+    public static bool Selectable(Vector4? color, string id, ref bool selected, ImGuiTreeNodeFlags extraFlags = ImGuiTreeNodeFlags.Leaf)
+    {
+        ImGuiEx.TreeNode(color, id, ImGuiTreeNodeFlags.NoTreePushOnOpen | (selected ? ImGuiTreeNodeFlags.Selected : ImGuiTreeNodeFlags.None) | extraFlags);
+        var ret = ImGui.IsItemClicked(ImGuiMouseButton.Left);
+        if (ret) selected = !selected;
+        return ret;
+    }
+
     public static bool TreeNode(string name, ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags.None) => ImGuiEx.TreeNode(null, name, flags);
 
     public static bool TreeNode(Vector4? color, string name, ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags.None)
@@ -99,11 +117,11 @@ public static unsafe partial class ImGuiEx
         return ret;
     }
 
-    public static void HelpMarker(string helpText, Vector4? color = null, string symbolOverride = null) => InfoMarker(helpText, color, symbolOverride);
+    public static void HelpMarker(string helpText, Vector4? color = null, string symbolOverride = null, bool sameLine = true) => InfoMarker(helpText, color, symbolOverride, sameLine);
 
-    public static void InfoMarker(string helpText, Vector4? color = null, string symbolOverride = null)
+    public static void InfoMarker(string helpText, Vector4? color = null, string symbolOverride = null, bool sameLine = true)
     {
-        ImGui.SameLine();
+        if(sameLine) ImGui.SameLine();
         ImGui.PushFont(UiBuilder.IconFont);
         ImGuiEx.Text(color ?? ImGuiColors.DalamudGrey3, symbolOverride ?? FontAwesomeIcon.InfoCircle.ToIconString());
         ImGui.PopFont();
@@ -435,7 +453,7 @@ public static unsafe partial class ImGuiEx
     /// </summary>
     /// <param name="id">Unique ImGui ID</param>
     /// <param name="values">List of actions for each column</param>
-    public static void EzTableColumns(string id, Action[] values)
+    public static void EzTableColumns(string id, Action[] values, int? columns = null, ImGuiTableFlags extraFlags = ImGuiTableFlags.None)
     {
         if (values.Length == 1)
         {
@@ -443,7 +461,7 @@ public static unsafe partial class ImGuiEx
         }
         else
         {
-            if (ImGui.BeginTable(id, values.Length, ImGuiTableFlags.SizingStretchSame))
+            if (ImGui.BeginTable(id, Math.Max(1, columns ?? values.Length), ImGuiTableFlags.SizingStretchSame | ImGuiTableFlags.NoSavedSettings | extraFlags))
             {
                 foreach (Action action in values)
                 {
