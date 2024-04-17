@@ -1379,6 +1379,29 @@ public static unsafe class GenericHelpers
     }
 
     /// <summary>
+    /// Attempts to get first instance of addon by name.
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="Addon"></param>
+    /// <param name="index"></param>
+    /// <param name="AddonPtr"></param>
+    /// <returns></returns>
+    public static bool TryGetAddonByName<T>(string Addon, int index, out T* AddonPtr) where T : unmanaged
+    {
+        var a = Svc.GameGui.GetAddonByName(Addon, index);
+        if (a == IntPtr.Zero)
+        {
+            AddonPtr = null;
+            return false;
+        }
+        else
+        {
+            AddonPtr = (T*)a;
+            return true;
+        }
+    }
+
+    /// <summary>
     /// Attempts to find out whether SelectString entry is enabled based on text color. 
     /// </summary>
     /// <param name="textNodePtr"></param>
