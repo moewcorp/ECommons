@@ -23,6 +23,8 @@ namespace ECommons.ImGuiMethods;
 
 public static unsafe partial class ImGuiEx
 {
+    public const ImGuiWindowFlags OverlayFlags = ImGuiWindowFlags.NoNav | ImGuiWindowFlags.NoMouseInputs | ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoFocusOnAppearing;
+
     public static bool Selectable(Vector4? color, string id)
     {
         var ret = ImGuiEx.TreeNode(color, id, ImGuiTreeNodeFlags.NoTreePushOnOpen | ImGuiTreeNodeFlags.Leaf);
@@ -453,6 +455,8 @@ public static unsafe partial class ImGuiEx
     /// </summary>
     /// <param name="id">Unique ImGui ID</param>
     /// <param name="values">List of actions for each column</param>
+    /// <param name="columns">Force number of columns</param>
+    /// <param name="extraFlags">Add extra flags to the table</param>
     public static void EzTableColumns(string id, Action[] values, int? columns = null, ImGuiTableFlags extraFlags = ImGuiTableFlags.None)
     {
         if (values.Length == 1)
@@ -577,8 +581,10 @@ public static unsafe partial class ImGuiEx
             ImGui.GetWindowDrawList().AddCircleFilled(center, halfSize.X, ImGui.GetColorU32(ImGui.IsMouseDown(ImGuiMouseButton.Left) ? ImGuiCol.ButtonActive : ImGuiCol.ButtonHovered));
             if (ImGui.IsMouseReleased(options.MouseButton))
                 pressed = true;
+#pragma warning disable
             if (options.ToastTooltipOnClick && ImGui.IsMouseReleased(options.ToastTooltipOnClickButton))
                 Svc.PluginInterface.UiBuilder.AddNotification(options.Tooltip!, null, NotificationType.Info);
+#pragma warning restore
         }
 
         ImGui.SetCursorPos(buttonPos);
@@ -1083,6 +1089,22 @@ public static unsafe partial class ImGuiEx
         return IconButton(icon.ToIconString(), id, size, enabled);
     }
 
+    public static bool Button(string label, bool enabled = true)
+    {
+        if (!enabled) ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.6f);
+        var ret = ImGui.Button(label) && enabled;
+        if (!enabled) ImGui.PopStyleVar();
+        return ret;
+    }
+
+    public static bool Button(string label, Vector2 size, bool enabled = true)
+    {
+        if (!enabled) ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.6f);
+        var ret = ImGui.Button(label, size) && enabled;
+        if (!enabled) ImGui.PopStyleVar();
+        return ret;
+    }
+
     public static bool IconButton(string icon, string id = "ECommonsButton", Vector2 size = default, bool enabled = true)
     {
         ImGui.PushFont(UiBuilder.IconFont);
@@ -1188,7 +1210,9 @@ public static unsafe partial class ImGuiEx
         }
         if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
         {
+#pragma warning disable
             GenericHelpers.Copy(text);
+#pragma warning restore
         }
     }
 
@@ -1201,7 +1225,9 @@ public static unsafe partial class ImGuiEx
         }
         if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
         {
+#pragma warning disable
             GenericHelpers.Copy(text);
+#pragma warning restore
         }
     }
 
@@ -1214,7 +1240,9 @@ public static unsafe partial class ImGuiEx
         }
         if (ImGui.IsItemClicked(ImGuiMouseButton.Left))
         {
+#pragma warning disable
             GenericHelpers.Copy(text);
+#pragma warning restore
         }
     }
 
@@ -1259,7 +1287,9 @@ public static unsafe partial class ImGuiEx
     {
         if (ImGui.Button(buttonText.Replace("$COPY", copy)))
         {
+#pragma warning disable
             GenericHelpers.Copy(copy);
+#pragma warning restore
         }
     }
 
