@@ -1,8 +1,6 @@
 using ECommons.DalamudServices;
-using FFXIVClientStructs.FFXIV.Client.UI.Agent;
 using Lumina.Excel.GeneratedSheets;
 using System;
-using System.Collections;
 using System.Linq;
 
 namespace ECommons.ExcelServices;
@@ -76,6 +74,7 @@ public static class ExcelWorldHelper
 
     [Obsolete("Please use GetName")]
     public static string GetWorldNameById(uint id) => GetName(id);
+    public static string GetName(int id) => GetName((uint)id);
     public static string GetName(uint id)
     {
         return Get(id)?.Name.ToString();
