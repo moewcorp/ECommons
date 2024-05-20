@@ -20,6 +20,11 @@ using ECommons.EzHookManager;
 using ECommons.EzSharedDataManager;
 using Serilog.Events;
 using ECommons.EzIpcManager;
+using System;
+using System.Reflection;
+using ECommons.Singletons;
+
+
 #nullable disable
 
 namespace ECommons;
@@ -72,7 +77,8 @@ var type = "unknown build";
     public static void Dispose()
     {
         Disposed = true;
-        GenericHelpers.Safe(PluginLoader.Dispose);
+				GenericHelpers.Safe(SingletonServiceManager.DisposeAll);
+				GenericHelpers.Safe(PluginLoader.Dispose);
         GenericHelpers.Safe(CmdManager.Dispose);
         if (EzConfig.Config != null)
         {
@@ -120,6 +126,7 @@ var type = "unknown build";
         GenericHelpers.Safe(EzHookCommon.DisposeAll);
         GenericHelpers.Safe(EzSharedData.Dispose);
         GenericHelpers.Safe(EzIPC.Dispose);
+        //SingletonManager.Dispose();
         Chat.instance = null;
         Instance = null;
     }
