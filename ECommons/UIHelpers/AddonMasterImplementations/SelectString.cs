@@ -20,6 +20,9 @@ public partial class AddonMaster
 
         public SelectString(void* addon) : base(addon) { }
 
+        public SeString SeString => MemoryHelper.ReadSeString(&Base->GetTextNodeById(2)->NodeText);
+        public string Text => SeString.ExtractText();
+
         public Entry[] Entries
         {
             get
@@ -36,7 +39,7 @@ public partial class AddonMaster
         public struct Entry
         {
             private AddonSelectString* Addon;
-            private int Index;
+            public int Index { get; init; }
 
             public Entry(AddonSelectString* addon, int index)
             {
@@ -50,6 +53,11 @@ public partial class AddonMaster
             public readonly void Select()
             {
                 Callback.Fire((AtkUnitBase*)this.Addon, true, Index);
+            }
+
+            public override string? ToString()
+            {
+                return $"AddonMaster.SelectString.Entry [Text=\"{Text}\", Index={Index}]";
             }
         }
     }
