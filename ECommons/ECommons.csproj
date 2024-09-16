@@ -36,16 +36,8 @@
         <DalamudLibPath>$(appdata)\xivlauncher\Addon\Hooks\dev\</DalamudLibPath>
     </PropertyGroup>
 
-	<PropertyGroup Condition="Exists('E:\插件工程\DalamudDep')">
-		<DalamudLibPath>E:\插件工程\DalamudDep\</DalamudLibPath>
-	</PropertyGroup>
-
-	<PropertyGroup Condition="Exists('..\..\DalamudDep')">
-		<DalamudLibPath>..\..\DalamudDep\</DalamudLibPath>
-	</PropertyGroup>
-
-	<PropertyGroup Condition="Exists('..\..\..\DalamudDep')">
-		<DalamudLibPath>..\..\..\DalamudDep\</DalamudLibPath>
+	<PropertyGroup Condition="Exists('D:\XIVLauncherCN\Roaming\addon\Hooks\dev')">
+		<DalamudLibPath>D:\XIVLauncherCN\Roaming\addon\Hooks\dev\</DalamudLibPath>
 	</PropertyGroup>
 
     <PropertyGroup Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))'">
