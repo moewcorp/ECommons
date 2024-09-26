@@ -36,7 +36,7 @@ public struct Sender : IEquatable<Sender>
         this = new(Name, HomeWorld.Id);
     }
 
-    public Sender(PlayerCharacter pc)
+    public Sender(IPlayerCharacter pc)
     {
         this = new(pc.Name, pc.HomeWorld);
     }
@@ -52,16 +52,16 @@ public struct Sender : IEquatable<Sender>
                HomeWorld == other.HomeWorld;
     }
 
-    public PlayerCharacter? Find()
+    public IPlayerCharacter? Find()
     {
-        foreach (var x in Svc.Objects)
+        foreach(var x in Svc.Objects)
         {
-            if (x is PlayerCharacter pc && pc.Name.ToString() == this.Name && pc.HomeWorld.Id == this.HomeWorld) return pc;
+            if(x is IPlayerCharacter pc && pc.Name.ToString() == Name && pc.HomeWorld.Id == HomeWorld) return pc;
         }
         return null;
     }
 
-    public bool TryFind([NotNullWhen(true)] out PlayerCharacter pc)
+    public bool TryFind([NotNullWhen(true)] out IPlayerCharacter pc)
     {
         pc = Find();
         return pc != null;
@@ -74,7 +74,7 @@ public struct Sender : IEquatable<Sender>
 
     public override string ToString()
     {
-        return $"{this.Name}@{Svc.Data.GetExcelSheet<World>()?.GetRow(this.HomeWorld)?.Name}";
+        return $"{Name}@{Svc.Data.GetExcelSheet<World>()?.GetRow(HomeWorld)?.Name}";
     }
 
     public static bool operator ==(Sender left, Sender right)

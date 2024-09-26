@@ -17,18 +17,18 @@ public static class ExcelWorldHelper
 
     public static bool IsPublic(this World w)
     {
-        if (w.IsPublic) return true;
-        return w.RowId.EqualsAny<uint>(408, 409, 410, 411, 415);
+        if(w.IsPublic) return true;
+        return false;//w.RowId.EqualsAny<uint>(408, 409, 410, 411, 415);
     }
 
     public static World Get(string name, bool onlyPublic = false)
     {
-        if (name == null) return null;
+        if(name == null) return null;
         if(NameCache.TryGetValue(name, out var world)) return world;
         if(Svc.Data.GetExcelSheet<World>().TryGetFirst(x => x.Name.ToString().EqualsIgnoreCase(name) && (!onlyPublic || x.Region.EqualsAny(Enum.GetValues<Region>().Select(z => (byte)z).ToArray())), out var result))
         {
             NameCache[name] = result;
-						return result;
+            return result;
         }
         return null;
     }
@@ -36,7 +36,7 @@ public static class ExcelWorldHelper
     public static World Get(uint id, bool onlyPublic = false)
     {
         var result = Svc.Data.GetExcelSheet<World>().GetRow(id);
-        if (result != null && (!onlyPublic || result.Region.EqualsAny(Enum.GetValues<Region>().Select(z => (byte)z).ToArray())))
+        if(result != null && (!onlyPublic || result.Region.EqualsAny(Enum.GetValues<Region>().Select(z => (byte)z).ToArray())))
         {
             return result;
         }
@@ -68,14 +68,14 @@ public static class ExcelWorldHelper
         return Svc.Data.GetExcelSheet<World>().Where(x => x.IsPublic() && x.DataCenter.Row == dataCenter).ToArray();
     }
 
-    public static WorldDCGroupType[] GetDataCenters(Region? region = null)
+    public static WorldDCGroupType[] GetDataCenters(Region? region = null, bool checkForPublicWorlds = false)
     {
-        return Svc.Data.GetExcelSheet<WorldDCGroupType>().Where(x => region == null || (Region)x.Region == region.Value).ToArray();
+        return Svc.Data.GetExcelSheet<WorldDCGroupType>().Where(x => (region == null || (Region)x.Region == region.Value) && (!checkForPublicWorlds || GetPublicWorlds(x.RowId).Length > 0)).ToArray();
     }
 
-    public static WorldDCGroupType[] GetDataCenters(System.Collections.Generic.IEnumerable<Region> regions)
+    public static WorldDCGroupType[] GetDataCenters(System.Collections.Generic.IEnumerable<Region> regions, bool checkForPublicWorlds = false)
     {
-        return Svc.Data.GetExcelSheet<WorldDCGroupType>().Where(x => regions.Contains((Region)x.Region)).ToArray();
+        return Svc.Data.GetExcelSheet<WorldDCGroupType>().Where(x => regions.Contains((Region)x.Region) && (!checkForPublicWorlds || GetPublicWorlds(x.RowId).Length > 0)).ToArray();
     }
 
     [Obsolete("Please use Get")]
@@ -113,7 +113,7 @@ public static class ExcelWorldHelper
     {
         var dc = world.DataCenter;
         var dcg = Svc.Data.GetExcelSheet<WorldDCGroupType>().GetRow(dc.Row);
-        if (dcg == null) return 0;
+        if(dcg == null) return 0;
         return (Region)dcg.Region;
     }
 }

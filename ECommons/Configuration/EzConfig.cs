@@ -1,6 +1,6 @@
-﻿using ECommons.Logging;
-using ECommons.DalamudServices;
+﻿using ECommons.DalamudServices;
 using ECommons.ImGuiMethods;
+using ECommons.Logging;
 using System;
 using System.IO;
 using System.Text;
@@ -18,10 +18,19 @@ namespace ECommons.Configuration;
 /// </summary>
 public static class EzConfig
 {
+    public static string? PluginConfigDirectoryOverride { get; set; } =  null;
+    public static string GetPluginConfigDirectory()
+    {
+        if(PluginConfigDirectoryOverride == null) return Svc.PluginInterface.GetPluginConfigDirectory();
+        var d = new DirectoryInfo(Svc.PluginInterface.GetPluginConfigDirectory());
+        var path = Path.Combine(d.Parent!.FullName, PluginConfigDirectoryOverride);
+        Directory.CreateDirectory(path);
+        return path;
+    }
     /// <summary>
     /// Full path to default configuration file.
     /// </summary>
-    public static string DefaultConfigurationFileName => Path.Combine(Svc.PluginInterface.GetPluginConfigDirectory(), DefaultSerializationFactory.DefaultConfigFileName);
+    public static string DefaultConfigurationFileName => Path.Combine(EzConfig.GetPluginConfigDirectory(), DefaultSerializationFactory.DefaultConfigFileName);
     /// <summary>
     /// Default configuration reference
     /// </summary>
@@ -34,7 +43,7 @@ public static class EzConfig
     /// <summary>
     /// Default serialization factory. Create a class that extends SerializationFactory, implement your own serializer and deserializer and assign DefaultSerializationFactory to it before loading any configurations to change serializer to your own liking.
     /// </summary>
-    public static ISerializationFactory DefaultSerializationFactory 
+    public static ISerializationFactory DefaultSerializationFactory
     {
         get
         {
@@ -42,7 +51,7 @@ public static class EzConfig
         }
         set
         {
-            if (WasCalled) throw new InvalidOperationException("Can not change DefaultSerializationFactory after any configurations has been loaded or saved");
+            if(WasCalled) throw new InvalidOperationException("Can not change DefaultSerializationFactory after any configurations has been loaded or saved");
             EzConfigValueStorage.DefaultSerializationFactory = value;
         }
     }
@@ -65,19 +74,20 @@ public static class EzConfig
     /// <exception cref="NullReferenceException"></exception>
     public static void Migrate<T>() where T : IEzConfig, new()
     {
-        if (Config != null)
+        if(Config != null)
         {
             throw new NullReferenceException("Migrate must be called before initialization");
         }
         WasCalled = true;
         var path = DefaultConfigurationFileName;
-        if(!File.Exists(path) && Svc.PluginInterface.ConfigFile.Exists)
+        var configFile = PluginConfigDirectoryOverride == null ? Svc.PluginInterface.ConfigFile : new FileInfo(Path.Combine(new DirectoryInfo(Svc.PluginInterface.GetPluginConfigDirectory()).Parent!.FullName, PluginConfigDirectoryOverride + ".json"));
+        if(!File.Exists(path) && configFile.Exists)
         {
-            PluginLog.Warning($"Migrating {Svc.PluginInterface.ConfigFile} into EzConfig system");
-            Config = LoadConfiguration<T>(Svc.PluginInterface.ConfigFile.FullName, false);
+            PluginLog.Warning($"Migrating {configFile} into EzConfig system");
+            Config = LoadConfiguration<T>(configFile.FullName, false);
             Save();
             Config = null;
-            File.Move(Svc.PluginInterface.ConfigFile.FullName, $"{Svc.PluginInterface.ConfigFile}.old");
+            File.Move(configFile.FullName, $"{configFile}.old");
         }
         else
         {
@@ -90,7 +100,7 @@ public static class EzConfig
     /// </summary>
     public static void Save()
     {
-        if (Config != null)
+        if(Config != null)
         {
             SaveConfiguration(Config, DefaultSerializationFactory.DefaultConfigFileName, true);
             if(OnSave != null)
@@ -118,11 +128,11 @@ public static class EzConfig
         {
             try
             {
-                lock (Configuration)
+                lock(Configuration)
                 {
-                    if (appendConfigDirectory) path = Path.Combine(Svc.PluginInterface.GetPluginConfigDirectory(), path);
+                    if(appendConfigDirectory) path = Path.Combine(EzConfig.GetPluginConfigDirectory(), path);
                     var antiCorruptionPath = $"{path}.new";
-                    if (File.Exists(antiCorruptionPath))
+                    if(File.Exists(antiCorruptionPath))
                     {
                         var saveTo = $"{antiCorruptionPath}.{DateTimeOffset.Now.ToUnixTimeMilliseconds()}";
                         PluginLog.Warning($"Detected unsuccessfully saved file {antiCorruptionPath}: moving to {saveTo}");
@@ -130,11 +140,11 @@ public static class EzConfig
                         File.Move(antiCorruptionPath, saveTo);
                         PluginLog.Warning($"Success. Please manually check {saveTo} file contents.");
                     }
-                    PluginLog.Verbose($"From caller {GenericHelpers.GetCallStackID(999)} engaging anti-corruption mechanism, writing file to {antiCorruptionPath}");
+                    //PluginLog.Verbose($"From caller {GenericHelpers.GetCallStackID(999)} engaging anti-corruption mechanism, writing file to {antiCorruptionPath}");
                     File.WriteAllText(antiCorruptionPath, serialized, Encoding.UTF8);
-                    PluginLog.Verbose($"Now moving {antiCorruptionPath} to {path}");
+                    //PluginLog.Verbose($"Now moving {antiCorruptionPath} to {path}");
                     File.Move(antiCorruptionPath, path, true);
-                    PluginLog.Verbose($"Configuration successfully saved.");
+                    //PluginLog.Verbose($"Configuration successfully saved.");
                 }
             }
             catch(Exception e)
@@ -142,7 +152,7 @@ public static class EzConfig
                 e.Log();
             }
         }
-        if (writeFileAsync)
+        if(writeFileAsync)
         {
             Task.Run(Write);
         }
@@ -164,8 +174,8 @@ public static class EzConfig
     {
         WasCalled = true;
         serializationFactory ??= DefaultSerializationFactory;
-        if (appendConfigDirectory) path = Path.Combine(Svc.PluginInterface.GetPluginConfigDirectory(), path);
-        if (!File.Exists(path))
+        if(appendConfigDirectory) path = Path.Combine(EzConfig.GetPluginConfigDirectory(), path);
+        if(!File.Exists(path))
         {
             return new T();
         }

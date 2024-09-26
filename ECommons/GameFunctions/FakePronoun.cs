@@ -12,44 +12,40 @@ public static unsafe class FakePronoun
     {
         try
         {
-            if (Svc.Condition[ConditionFlag.DutyRecorderPlayback])
+            if(pronoun.StartsWith("<t") && int.TryParse(pronoun[2..3], out var n))
             {
-                if (uint.TryParse(pronoun[1..2], out var pos))
+                return GetRolePlaceholder(CombatRole.Tank, n);
+            }
+            else if(pronoun.StartsWith("<h") && int.TryParse(pronoun[2..3], out n))
+            {
+                return GetRolePlaceholder(CombatRole.Healer, n);
+            }
+            else if(pronoun.StartsWith("<d") && int.TryParse(pronoun[2..3], out n))
+            {
+                return GetRolePlaceholder(CombatRole.DPS, n);
+            }
+            else if(Svc.Condition[ConditionFlag.DutyRecorderPlayback])
+            {
+                if(uint.TryParse(pronoun[1..2], out var pos))
                 {
                     var i = 0;
-                    foreach (var x in Svc.Objects)
+                    foreach(var x in Svc.Objects)
                     {
-                        if (x is PlayerCharacter pc)
+                        if(x is IPlayerCharacter pc)
                         {
                             i++;
-                            if (i == pos)
+                            if(i == pos)
                             {
                                 return (GameObject*)pc.Address;
                             }
                         }
                     }
-                    return null;
                 }
-                else
-                {
-                    if (pronoun.StartsWith("<t") && int.TryParse(pronoun[2..3], out var n))
-                    {
-                        return GetRolePlaceholder(CombatRole.Tank, n);
-                    }
-                    else if (pronoun.StartsWith("<h") && int.TryParse(pronoun[2..3], out n))
-                    {
-                        return GetRolePlaceholder(CombatRole.Healer, n);
-                    }
-                    else if (pronoun.StartsWith("<d") && int.TryParse(pronoun[2..3], out n))
-                    {
-                        return GetRolePlaceholder(CombatRole.DPS, n);
-                    }
-                    return null;
-                }
+                return null;
             }
             else
             {
-                return FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->GetUiModule()->GetPronounModule()->ResolvePlaceholder($"{pronoun}", 0, 0);
+                return FFXIVClientStructs.FFXIV.Client.System.Framework.Framework.Instance()->GetUIModule()->GetPronounModule()->ResolvePlaceholder($"{pronoun}", 0, 0);
             }
         }
         catch(Exception e)
@@ -59,17 +55,17 @@ public static unsafe class FakePronoun
         }
     }
 
-    static GameObject* GetRolePlaceholder(CombatRole role, int pos)
+    private static GameObject* GetRolePlaceholder(CombatRole role, int pos)
     {
         var i = 0;
-        foreach (var x in Svc.Objects)
+        foreach(var x in Svc.Objects)
         {
-            if (x is PlayerCharacter pc)
+            if(x is IPlayerCharacter pc)
             {
-                if (pc.GetRole() == role)
+                if(pc.GetRole() == role)
                 {
                     i++;
-                    if (i == pos)
+                    if(i == pos)
                     {
                         return (GameObject*)pc.Address;
                     }

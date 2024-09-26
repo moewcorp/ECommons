@@ -9,10 +9,10 @@ namespace ECommons;
 
 public static class EzCmd
 {
-    internal static List<string> RegisteredCommands = new();
+    internal static List<string> RegisteredCommands = [];
 
     //[Obsolete("Please use Cmd Attribute to the method in IDalamudPlugin to Add your command.")]
-    public static void Add(string command, HandlerDelegate action, string helpMessage = null)
+    public static void Add(string command, IReadOnlyCommandInfo.HandlerDelegate action, string helpMessage = null)
     {
         RegisteredCommands.Add(command);
         var cInfo = new CommandInfo(action)
@@ -20,10 +20,10 @@ public static class EzCmd
             HelpMessage = helpMessage ?? "",
             ShowInHelp = helpMessage != null
         };
-        GenericHelpers.Safe(delegate
+        /*GenericHelpers.Safe(delegate
         {
             cInfo.SetFoP("LoaderAssemblyName", Svc.PluginInterface.InternalName);
-        });
+        });*/
         Svc.Commands.AddHandler(command, cInfo);
     }
 }

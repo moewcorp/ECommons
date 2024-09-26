@@ -1,51 +1,106 @@
-﻿using Dalamud.Game.ClientState.Conditions;
+﻿using Dalamud.Game;
+using Dalamud.Game.ClientState.Conditions;
+using Dalamud.Game.ClientState.Objects.Types;
 using Dalamud.Game.Text.SeStringHandling;
 using Dalamud.Game.Text.SeStringHandling.Payloads;
-using ECommons.Logging;
+using Dalamud.Interface.Windowing;
+using Dalamud.Memory;
 using Dalamud.Utility;
 using ECommons.ChatMethods;
 using ECommons.DalamudServices;
+using ECommons.ExcelServices;
 using ECommons.ImGuiMethods;
+using ECommons.Interop;
+using ECommons.Logging;
+using ECommons.MathHelpers;
+using ECommons.UIHelpers.AddonMasterImplementations;
+using FFXIVClientStructs.FFXIV.Client.System.String;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using ImGuiNET;
+using Lumina.Excel;
 using Lumina.Excel.GeneratedSheets;
+using Newtonsoft.Json;
+using PInvoke;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 using System.Linq;
 using System.Numerics;
-using System.Text;
-using System.Diagnostics.CodeAnalysis;
-using Newtonsoft.Json;
-using FFXIVClientStructs.FFXIV.Client.System.String;
 using System.Runtime.CompilerServices;
-using Dalamud.Memory;
-using Dalamud.Game.ClientState.Objects.Types;
-using ECommons.MathHelpers;
-using PInvoke;
-using ECommons.Interop;
-using System.Globalization;
-using System.Collections;
-using Dalamud.Interface.Windowing;
-using ECommons.ExcelServices;
+using System.Runtime.InteropServices;
+using System.Text;
 #nullable disable
 
 namespace ECommons;
 
 public static unsafe partial class GenericHelpers
 {
+    public static void AddRange<T>(this ICollection<T> collection, IEnumerable<T> values)
+    {
+        foreach(var x in values)
+        {
+            collection.Add(x);
+        }
+    }
+
+    public static uint[] Range(uint inclusiveStart, uint inclusiveEnd)
+    {
+        var ret = new uint[inclusiveEnd - inclusiveStart + 1];
+        for(var i = 0; i < ret.Length; i++)
+        {
+            ret[i] = (uint)(inclusiveStart + i);
+        }
+        return ret;
+    }
+
+    public static int[] Range(int inclusiveStart, int inclusiveEnd)
+    {
+        var ret = new int[inclusiveEnd - inclusiveStart + 1];
+        for(var i = 0; i < ret.Length; i++)
+        {
+            ret[i] = (int)(inclusiveStart + i);
+        }
+        return ret;
+    }
+
+    public static SeString Read(this Utf8String str)
+    {
+        return MemoryHelper.ReadSeString(&str);
+    }
+
+    public static string Read(this Span<byte> bytes)
+    {
+        for(var i = 0; i < bytes.Length; i++)
+        {
+            if(bytes[i] == 0)
+            {
+                fixed(byte* ptr = bytes)
+                {
+                    return Marshal.PtrToStringUTF8((nint)ptr, i);
+                }
+            }
+        }
+        fixed(byte* ptr = bytes)
+        {
+            return Marshal.PtrToStringUTF8((nint)ptr, bytes.Length);
+        }
+    }
+
     public static string ParamsPlaceholderPrefix = "$";
     public static string Params(this string? defaultValue, params object?[] objects)
     {
         defaultValue ??= "";
         var guid = Guid.NewGuid().ToString();
         defaultValue = defaultValue.Replace($"{ParamsPlaceholderPrefix}{ParamsPlaceholderPrefix}", guid);
-        for (int i = 0; i < objects.Length; i++)
+        for(var i = 0; i < objects.Length; i++)
         {
             var str = objects[i]?.ToString() ?? "";
             defaultValue = defaultValue.Replace($"{ParamsPlaceholderPrefix}{i}", str);
         }
-        foreach (var obj in objects)
+        foreach(var obj in objects)
         {
             defaultValue = defaultValue.ReplaceFirst(ParamsPlaceholderPrefix, obj?.ToString() ?? "");
         }
@@ -59,23 +114,23 @@ public static unsafe partial class GenericHelpers
 
     public static bool IsScreenReady()
     {
-        { if (TryGetAddonByName<AtkUnitBase>("NowLoading", out var addon) && addon->IsVisible) return false; }
-        { if (TryGetAddonByName<AtkUnitBase>("FadeMiddle", out var addon) && addon->IsVisible) return false; }
-        { if (TryGetAddonByName<AtkUnitBase>("FadeBack", out var addon) && addon->IsVisible) return false; }
+        { if(TryGetAddonByName<AtkUnitBase>("NowLoading", out var addon) && addon->IsVisible) return false; }
+        { if(TryGetAddonByName<AtkUnitBase>("FadeMiddle", out var addon) && addon->IsVisible) return false; }
+        { if(TryGetAddonByName<AtkUnitBase>("FadeBack", out var addon) && addon->IsVisible) return false; }
         return true;
     }
 
-    public static bool AddressEquals(this GameObject obj, GameObject other)
+    public static bool AddressEquals(this IGameObject obj, IGameObject other)
     {
         return obj?.Address == other?.Address;
     }
 
     public static V SafeSelect<K, V>(this IDictionary<K, V> dictionary, K key) => SafeSelect(dictionary, key, default);
     public static V SafeSelect<K, V>(this IDictionary<K, V> dictionary, K key, V defaultValue)
-		{
-				if (dictionary == null) return default;
-				if (key == null) return default;
-				if (dictionary.TryGetValue(key, out var ret))
+    {
+        if(dictionary == null) return default;
+        if(key == null) return default;
+        if(dictionary.TryGetValue(key, out var ret))
         {
             return ret;
         }
@@ -91,8 +146,8 @@ public static unsafe partial class GenericHelpers
     /// <returns></returns>
     public static T SafeSelect<T>(this IList<T> list, int index)
     {
-        if (list == null) return default;
-        if (index < 0 || index >= list.Count) return default;
+        if(list == null) return default;
+        if(index < 0 || index >= list.Count) return default;
         return list[index];
     }
 
@@ -105,7 +160,7 @@ public static unsafe partial class GenericHelpers
     /// <returns></returns>
     public static T SafeSelect<T>(this T[] list, int index)
     {
-        if (index < 0 || index >= list.Length) return default;
+        if(index < 0 || index >= list.Length) return default;
         return list[index];
     }
 
@@ -120,9 +175,9 @@ public static unsafe partial class GenericHelpers
     {
         var str = input.Split(separator);
         output = new byte[str.Length];
-        for (int i = 0; i < str.Length; i++)
+        for(var i = 0; i < str.Length; i++)
         {
-            if (!byte.TryParse(str[i], NumberStyles.HexNumber, null, out output[i]))
+            if(!byte.TryParse(str[i], NumberStyles.HexNumber, null, out output[i]))
             {
                 return false;
             }
@@ -135,11 +190,11 @@ public static unsafe partial class GenericHelpers
     /// </summary>
     /// <param name="maxFrames"></param>
     /// <returns></returns>
-    public static string GetCallStackID(int maxFrames = 3) 
+    public static string GetCallStackID(int maxFrames = 3)
     {
         try
         {
-            if (maxFrames == 0)
+            if(maxFrames == 0)
             {
                 maxFrames = int.MaxValue;
             }
@@ -148,7 +203,7 @@ public static unsafe partial class GenericHelpers
                 maxFrames--;
             }
             var stack = new StackTrace().GetFrames();
-            if (stack.Length > 1)
+            if(stack.Length > 1)
             {
                 return stack[1..Math.Min(stack.Length, maxFrames)].Select(x => x.GetMethod() == null ? "<unknown>" : $"{x.GetMethod().DeclaringType?.FullName}.{x.GetMethod().Name}").Join(" <- ");
             }
@@ -172,7 +227,7 @@ public static unsafe partial class GenericHelpers
         var sb = new StringBuilder();
         foreach(var x in bytes)
         {
-            if (first)
+            if(first)
             {
                 first = false;
             }
@@ -200,7 +255,7 @@ public static unsafe partial class GenericHelpers
     /// <returns></returns>
     public static bool TryDequeue<T>(this IList<T> List, out T result)
     {
-        if (List.Count > 0)
+        if(List.Count > 0)
         {
             result = List[0];
             List.RemoveAt(0);
@@ -222,7 +277,7 @@ public static unsafe partial class GenericHelpers
     /// <exception cref="InvalidOperationException"></exception>
     public static T Dequeue<T>(this IList<T> List)
     {
-        if (List.TryDequeue(out var ret))
+        if(List.TryDequeue(out var ret))
         {
             return ret;
         }
@@ -231,9 +286,9 @@ public static unsafe partial class GenericHelpers
 
     public static bool TryDequeueLast<T>(this IList<T> List, out T result)
     {
-        if (List.Count > 0)
+        if(List.Count > 0)
         {
-            result = List[List.Count-1];
+            result = List[List.Count - 1];
             List.RemoveAt(List.Count - 1);
             return true;
         }
@@ -246,7 +301,7 @@ public static unsafe partial class GenericHelpers
 
     public static T DequeueLast<T>(this IList<T> List)
     {
-        if (List.TryDequeueLast(out var ret))
+        if(List.TryDequeueLast(out var ret))
         {
             return ret;
         }
@@ -261,7 +316,7 @@ public static unsafe partial class GenericHelpers
     /// <returns></returns>
     public static T DequeueOrDefault<T>(this IList<T> List)
     {
-        if (List.Count > 0)
+        if(List.Count > 0)
         {
             var ret = List[0];
             List.RemoveAt(0);
@@ -308,12 +363,12 @@ public static unsafe partial class GenericHelpers
         }
         return -1;
     }
-    
+
     public static bool ContainsIgnoreCase(this IEnumerable<string> haystack, string needle)
     {
         foreach(var x in haystack)
         {
-            if (x.EqualsIgnoreCase(needle)) return true;
+            if(x.EqualsIgnoreCase(needle)) return true;
         }
         return false;
     }
@@ -331,7 +386,7 @@ public static unsafe partial class GenericHelpers
     /// <returns></returns>
     public static string NullWhenFalse(this string s, bool b)
     {
-        return b?s:null;
+        return b ? s : null;
     }
 
     /// <summary>
@@ -362,7 +417,7 @@ public static unsafe partial class GenericHelpers
     /// <param name="values">Items</param>
     public static void Add<T>(this ICollection<T> collection, params T[] values)
     {
-        foreach (var x in values)
+        foreach(var x in values)
         {
             collection.Add(x);
         }
@@ -376,7 +431,7 @@ public static unsafe partial class GenericHelpers
     /// <param name="values">Items</param>
     public static void Remove<T>(this ICollection<T> collection, params T[] values)
     {
-        foreach (var x in values)
+        foreach(var x in values)
         {
             collection.Remove(x);
         }
@@ -396,8 +451,8 @@ public static unsafe partial class GenericHelpers
     /// <returns>Whether the key is currently pressed</returns>
     public static bool IsKeyPressed(int key)
     {
-        if (key == 0) return false;
-        if (UseAsyncKeyCheck)
+        if(key == 0) return false;
+        if(UseAsyncKeyCheck)
         {
             return Bitmask.IsBitSet(User32.GetKeyState(key), 15);
         }
@@ -418,18 +473,18 @@ public static unsafe partial class GenericHelpers
 
     public static bool IsKeyPressed(IEnumerable<LimitedKeys> keys)
     {
-        foreach (var x in keys)
+        foreach(var x in keys)
         {
-            if (IsKeyPressed(x)) return true;
+            if(IsKeyPressed(x)) return true;
         }
         return false;
     }
 
     public static bool IsKeyPressed(IEnumerable<int> keys)
     {
-        foreach (var x in keys)
+        foreach(var x in keys)
         {
-            if (IsKeyPressed(x)) return true;
+            if(IsKeyPressed(x)) return true;
         }
         return false;
     }
@@ -439,9 +494,9 @@ public static unsafe partial class GenericHelpers
     /// </summary>
     /// <param name="obj">Object to check</param>
     /// <returns>Whether you are targeting object <paramref name="obj"/>; <see langword="false"/> if <paramref name="obj"/> is <see langword="null"/></returns>
-    public static bool IsTarget(this GameObject obj)
+    public static bool IsTarget(this IGameObject obj)
     {
-        return Svc.Targets.Target != null && Svc.Targets.Target.Address == obj.Address;
+        return Svc.Targets.Target != null && obj != null && Svc.Targets.Target.Address == obj.Address;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -454,7 +509,7 @@ public static unsafe partial class GenericHelpers
     public static T[] CreateArray<T>(this T o, uint num)
     {
         var arr = new T[num];
-        for (int i = 0; i < arr.Length; i++)
+        for(var i = 0; i < arr.Length; i++)
         {
             arr[i] = o;
         }
@@ -463,7 +518,7 @@ public static unsafe partial class GenericHelpers
 
     public static V GetOrDefault<K, V>(this IDictionary<K, V> dic, K key)
     {
-        if(dic.TryGetValue(key, out V value)) return value;
+        if(dic.TryGetValue(key, out var value)) return value;
         return default;
     }
 
@@ -495,9 +550,9 @@ public static unsafe partial class GenericHelpers
             PluginLog.Error($"{nameof(replaceWhat)} and {nameof(replaceWith)} must be same length");
             return s;
         }
-        for (int i = 0; i < replaceWhat.Length; i++)
+        for(var i = 0; i < replaceWhat.Length; i++)
         {
-            if (replaceWithWhole)
+            if(replaceWithWhole)
             {
                 s = s.Replace(replaceWhat[i].ToString(), replaceWith);
             }
@@ -573,9 +628,9 @@ public static unsafe partial class GenericHelpers
     /// <param name="key"></param>
     /// <returns></returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static V GetOrCreate<K, V>(this IDictionary<K, V> dictionary, K key) where V:new()
+    public static V GetOrCreate<K, V>(this IDictionary<K, V> dictionary, K key) where V : new()
     {
-        if (dictionary.TryGetValue(key, out var result))
+        if(dictionary.TryGetValue(key, out var result))
         {
             return result;
         }
@@ -606,7 +661,7 @@ public static unsafe partial class GenericHelpers
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static bool NotNull<T>(this T obj, [NotNullWhen(true)]out T outobj)
+    public static bool NotNull<T>(this T obj, [NotNullWhen(true)] out T outobj)
     {
         outobj = obj;
         return obj != null;
@@ -657,8 +712,8 @@ public static unsafe partial class GenericHelpers
 
     public static string ReplaceFirst(this string text, string search, string replace)
     {
-        int pos = text.IndexOf(search);
-        if (pos < 0)
+        var pos = text.IndexOf(search);
+        if(pos < 0)
         {
             return text;
         }
@@ -673,14 +728,14 @@ public static unsafe partial class GenericHelpers
     /// <returns>Whether operation succeeded</returns>
     public static bool TryDecodeSender(SeString sender, out Sender senderStruct)
     {
-        if (sender == null)
+        if(sender == null)
         {
             senderStruct = default;
             return false;
         }
-        foreach (var x in sender.Payloads)
+        foreach(var x in sender.Payloads)
         {
-            if (x is PlayerPayload p)
+            if(x is PlayerPayload p)
             {
                 senderStruct = new(p.PlayerName, p.World.RowId);
                 return true;
@@ -693,13 +748,53 @@ public static unsafe partial class GenericHelpers
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsAddonReady(AtkUnitBase* Addon)
     {
-        return Addon->IsVisible && Addon->UldManager.LoadedState == AtkLoadState.Loaded;
+        return Addon->IsVisible && Addon->UldManager.LoadedState == AtkLoadState.Loaded && Addon->IsFullyLoaded();
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsAddonReady(AtkComponentNode* Addon)
     {
-        return Addon->AtkResNode.IsVisible && Addon->Component->UldManager.LoadedState == AtkLoadState.Loaded;
+        return Addon->AtkResNode.IsVisible() && Addon->Component->UldManager.LoadedState == AtkLoadState.Loaded;
+    }
+
+    /// <summary>
+    /// Gets a node given a chain of node IDs
+    /// </summary>
+    /// <param name="node">Root node of the addon</param>
+    /// <param name="ids">Node IDs (starting from root) to the desired node</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static unsafe AtkResNode* GetNodeByIDChain(AtkResNode* node, params int[] ids)
+    {
+        if (node == null || ids.Length <= 0)
+            return null;
+
+        if (node->NodeId == ids[0])
+        {
+            if (ids.Length == 1)
+                return node;
+
+            var newList = new List<int>(ids);
+            newList.RemoveAt(0);
+
+            var childNode = node->ChildNode;
+            if (childNode != null)
+                return GetNodeByIDChain(childNode, [.. newList]);
+
+            if ((int)node->Type >= 1000)
+            {
+                var componentNode = node->GetAsAtkComponentNode();
+                var component = componentNode->Component;
+                var uldManager = component->UldManager;
+                childNode = uldManager.NodeList[0];
+                return childNode == null ? null : GetNodeByIDChain(childNode, [.. newList]);
+            }
+
+            return null;
+        }
+
+        //check siblings
+        var sibNode = node->PrevSiblingNode;
+        return sibNode != null ? GetNodeByIDChain(sibNode, ids) : null;
     }
 
     /// <summary>
@@ -741,7 +836,11 @@ public static unsafe partial class GenericHelpers
             if(x is TextPayload tp)
             {
                 sb.Append(tp.Text);
-                if (onlyFirst) break;
+                if(onlyFirst) break;
+            }
+            if(x.Type == PayloadType.Unknown && x.Encode().SequenceEqual<byte>([0x02, 0x1d, 0x01, 0x03]))
+            {
+                sb.Append(' ');
             }
         }
         return sb.ToString();
@@ -763,7 +862,7 @@ public static unsafe partial class GenericHelpers
     {
         foreach(var x in compareTo)
         {
-            if (source.StartsWith(x, stringComparison)) return true;
+            if(source.StartsWith(x, stringComparison)) return true;
         }
         return false;
     }
@@ -786,7 +885,7 @@ public static unsafe partial class GenericHelpers
     /// <returns>Whether <paramref name="hashSet"/> contains <paramref name="value"/> after function has been executed.</returns>
     public static bool Toggle<T>(this HashSet<T> hashSet, T value)
     {
-        if (hashSet.Contains(value))
+        if(hashSet.Contains(value))
         {
             hashSet.Remove(value);
             return false;
@@ -800,7 +899,7 @@ public static unsafe partial class GenericHelpers
 
     public static bool Toggle<T>(this List<T> list, T value)
     {
-        if (list.Contains(value))
+        if(list.Contains(value))
         {
             list.RemoveAll(x => x.Equals(value));
             return false;
@@ -829,7 +928,7 @@ public static unsafe partial class GenericHelpers
     {
         foreach(var x in collection)
         {
-            if (predicate(x))
+            if(predicate(x))
             {
                 return x;
             }
@@ -840,7 +939,7 @@ public static unsafe partial class GenericHelpers
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string Default(this string s, string defaultValue)
     {
-        if (string.IsNullOrEmpty(s)) return defaultValue;
+        if(string.IsNullOrEmpty(s)) return defaultValue;
         return s;
     }
 
@@ -865,10 +964,10 @@ public static unsafe partial class GenericHelpers
     public static IEnumerable<R> SelectMulti<T, R>(this IEnumerable<T> values, params Func<T, R>[] funcs)
     {
         foreach(var v in values)
-        foreach(var x in funcs)
-        {
+            foreach(var x in funcs)
+            {
                 yield return x(v);
-        }
+            }
     }
 
     [Obsolete($"Please use ExcelWorldHelper.TryGetWorldByName")]
@@ -893,15 +992,15 @@ public static unsafe partial class GenericHelpers
 
     public static ref int ValidateRange(this ref int i, int min, int max)
     {
-        if (i > max) i = max;
-        if (i < min) i = min;
+        if(i > max) i = max;
+        if(i < min) i = min;
         return ref i;
     }
 
     public static ref float ValidateRange(this ref float i, float min, float max)
     {
-        if (i > max) i = max;
-        if (i < min) i = min;
+        if(i > max) i = max;
+        if(i < min) i = min;
         return ref i;
     }
 
@@ -939,11 +1038,11 @@ public static unsafe partial class GenericHelpers
 
     public static bool IsNoConditions()
     {
-        if (!Svc.Condition[ConditionFlag.NormalConditions]) return false;
+        if(!Svc.Condition[ConditionFlag.NormalConditions]) return false;
         for(var i = 2; i < 100; i++)
         {
-            if (i == (int)ConditionFlag.ParticipatingInCrossWorldPartyOrAlliance) continue;
-            if (Svc.Condition[i]) return false;
+            if(i == (int)ConditionFlag.ParticipatingInCrossWorldPartyOrAlliance) continue;
+            if(Svc.Condition[i]) return false;
         }
         return true;
     }
@@ -959,7 +1058,7 @@ public static unsafe partial class GenericHelpers
     {
         foreach(var x in values)
         {
-            if (!source.Contains(x)) return false;
+            if(!source.Contains(x)) return false;
         }
         return true;
     }
@@ -982,7 +1081,7 @@ public static unsafe partial class GenericHelpers
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static string Cut(this string s, int num)
     {
-        if (s.Length <= num) return s;
+        if(s.Length <= num) return s;
         return s[0..num] + "...";
     }
 
@@ -1009,11 +1108,11 @@ public static unsafe partial class GenericHelpers
         {
             return 500;
         }
-        else if (percent == 99)
+        else if(percent == 99)
         {
             return 561;
         }
-        else if (percent == 100)
+        else if(percent == 100)
         {
             return 573;
         }
@@ -1047,9 +1146,9 @@ public static unsafe partial class GenericHelpers
         {
             a();
         }
-        catch (Exception e)
+        catch(Exception e)
         {
-            if (!suppressErrors) PluginLog.Error($"{e.Message}\n{e.StackTrace ?? ""}");
+            if(!suppressErrors) PluginLog.Error($"{e.Message}\n{e.StackTrace ?? ""}");
         }
     }
 
@@ -1060,7 +1159,7 @@ public static unsafe partial class GenericHelpers
         {
             a();
         }
-        catch (Exception e)
+        catch(Exception e)
         {
             logAction($"{e.Message}\n{e.StackTrace ?? ""}", Array.Empty<object>());
         }
@@ -1073,7 +1172,7 @@ public static unsafe partial class GenericHelpers
         {
             a();
         }
-        catch (Exception e)
+        catch(Exception e)
         {
             try
             {
@@ -1085,7 +1184,7 @@ public static unsafe partial class GenericHelpers
                 PluginLog.Error($"{ex.Message}\n{ex.StackTrace ?? ""}");
                 suppressErrors = false;
             }
-            if (!suppressErrors) PluginLog.Error($"{e.Message}\n{e.StackTrace ?? ""}");
+            if(!suppressErrors) PluginLog.Error($"{e.Message}\n{e.StackTrace ?? ""}");
         }
     }
 
@@ -1096,7 +1195,7 @@ public static unsafe partial class GenericHelpers
             a();
             return true;
         }
-        catch (Exception e)
+        catch(Exception e)
         {
             PluginLog.Error($"{e.Message}\n{e.StackTrace ?? ""}");
             return false;
@@ -1110,7 +1209,7 @@ public static unsafe partial class GenericHelpers
             result = a();
             return true;
         }
-        catch (Exception e)
+        catch(Exception e)
         {
             PluginLog.Error($"{e.Message}\n{e.StackTrace ?? ""}");
             result = default;
@@ -1121,9 +1220,9 @@ public static unsafe partial class GenericHelpers
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool ContainsAny<T>(this IEnumerable<T> obj, params T[] values)
     {
-        foreach (var x in values)
+        foreach(var x in values)
         {
-            if (obj.Contains(x))
+            if(obj.Contains(x))
             {
                 return true;
             }
@@ -1134,9 +1233,9 @@ public static unsafe partial class GenericHelpers
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool ContainsAny<T>(this IEnumerable<T> obj, IEnumerable<T> values)
     {
-        foreach (var x in values)
+        foreach(var x in values)
         {
-            if (obj.Contains(x))
+            if(obj.Contains(x))
             {
                 return true;
             }
@@ -1147,9 +1246,9 @@ public static unsafe partial class GenericHelpers
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool ContainsAny(this string obj, IEnumerable<string> values)
     {
-        foreach (var x in values)
+        foreach(var x in values)
         {
-            if (obj.Contains(x))
+            if(obj.Contains(x))
             {
                 return true;
             }
@@ -1160,9 +1259,9 @@ public static unsafe partial class GenericHelpers
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool ContainsAny(this string obj, params string[] values)
     {
-        foreach (var x in values)
+        foreach(var x in values)
         {
-            if (obj.Contains(x))
+            if(obj.Contains(x))
             {
                 return true;
             }
@@ -1173,9 +1272,9 @@ public static unsafe partial class GenericHelpers
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool ContainsAny(this string obj, StringComparison comp, params string[] values)
     {
-        foreach (var x in values)
+        foreach(var x in values)
         {
-            if (obj.Contains(x, comp))
+            if(obj.Contains(x, comp))
             {
                 return true;
             }
@@ -1207,11 +1306,17 @@ public static unsafe partial class GenericHelpers
         return values.Any(x => x.Equals(obj));
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool AllNull(params object[] objects) => objects.All(s => s == null);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static bool AnyNull(params object[] objects) => objects.Any(s => s == null);
+
     public static IEnumerable<K> FindKeysByValue<K, V>(this IDictionary<K, V> dictionary, V value)
     {
         foreach(var x in dictionary)
         {
-            if (value.Equals(x.Value))
+            if(value.Equals(x.Value))
             {
                 yield return x.Key;
             }
@@ -1241,15 +1346,15 @@ public static unsafe partial class GenericHelpers
     /// <returns></returns>
     public static bool TryGetFirst<TSource>(this IEnumerable<TSource> source, out TSource value)
     {
-        if (source == null)
+        if(source == null)
         {
             value = default;
             return false;
         }
         var list = source as IList<TSource>;
-        if (list != null)
+        if(list != null)
         {
-            if (list.Count > 0)
+            if(list.Count > 0)
             {
                 value = list[0];
                 return true;
@@ -1257,9 +1362,9 @@ public static unsafe partial class GenericHelpers
         }
         else
         {
-            using (var e = source.GetEnumerator())
+            using(var e = source.GetEnumerator())
             {
-                if (e.MoveNext())
+                if(e.MoveNext())
                 {
                     value = e.Current;
                     return true;
@@ -1280,19 +1385,19 @@ public static unsafe partial class GenericHelpers
     /// <returns></returns>
     public static bool TryGetFirst<TSource>(this IEnumerable<TSource> source, Func<TSource, bool> predicate, out TSource value)
     {
-        if (source == null)
+        if(source == null)
         {
             value = default;
             return false;
         }
-        if (predicate == null)
+        if(predicate == null)
         {
             value = default;
             return false;
         }
-        foreach (TSource element in source)
+        foreach(var element in source)
         {
-            if (predicate(element))
+            if(predicate(element))
             {
                 value = element;
                 return true;
@@ -1317,11 +1422,40 @@ public static unsafe partial class GenericHelpers
             value = enumerable.Last(predicate);
             return true;
         }
-        catch (Exception)
+        catch(Exception)
         {
             value = default;
             return false;
         }
+    }
+
+    /// <summary>
+    /// Slower than <see cref="TryGetAddonByName"/>
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    /// <param name="addon"></param>
+    /// <param name="addonMaster"></param>
+    /// <returns></returns>
+    public static bool TryGetAddonMaster<T>(string addon, out T addonMaster) where T : IAddonMasterBase
+    {
+        if(TryGetAddonByName<AtkUnitBase>(addon, out var ptr))
+        {
+            addonMaster = (T)Activator.CreateInstance(typeof(T), (nint)ptr);
+            return true;
+        }
+        addonMaster = default;
+        return false;
+    }
+
+    public static bool TryGetAddonMaster<T>(out T addonMaster) where T : IAddonMasterBase
+    {
+        if(TryGetAddonByName<AtkUnitBase>(typeof(T).Name.Split(".")[^1], out var ptr))
+        {
+            addonMaster = (T)Activator.CreateInstance(typeof(T), (nint)ptr);
+            return true;
+        }
+        addonMaster = default;
+        return false;
     }
 
     /// <summary>
@@ -1334,7 +1468,7 @@ public static unsafe partial class GenericHelpers
     public static bool TryGetAddonByName<T>(string Addon, out T* AddonPtr) where T : unmanaged
     {
         var a = Svc.GameGui.GetAddonByName(Addon, 1);
-        if (a == IntPtr.Zero)
+        if(a == IntPtr.Zero)
         {
             AddonPtr = null;
             return false;
@@ -1388,16 +1522,16 @@ public static unsafe partial class GenericHelpers
 
     public static void MoveItemToPosition<T>(List<T> list, Func<T, bool> sourceItemSelector, int targetedIndex)
     {
-        int sourceIndex = -1;
-        for (int i = 0; i < list.Count; i++)
+        var sourceIndex = -1;
+        for(var i = 0; i < list.Count; i++)
         {
-            if (sourceItemSelector(list[i]))
+            if(sourceItemSelector(list[i]))
             {
                 sourceIndex = i;
                 break;
             }
         }
-        if (sourceIndex == targetedIndex) return;
+        if(sourceIndex == targetedIndex) return;
         var item = list[sourceIndex];
         list.RemoveAt(sourceIndex);
         list.Insert(targetedIndex, item);
@@ -1440,5 +1574,20 @@ public static unsafe partial class GenericHelpers
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     [Obsolete($"Use MemoryHelper.ReadRaw")]
     public static byte[] ReadRaw(IntPtr memoryAddress, int length) => MemoryHelper.ReadRaw(memoryAddress, length);
+
+    public static ExcelSheet<T> GetSheet<T>(ClientLanguage? language = null) where T : ExcelRow
+        => Svc.Data.GetExcelSheet<T>(language ?? Svc.ClientState.ClientLanguage)!;
+
+    public static uint GetRowCount<T>() where T : ExcelRow
+        => GetSheet<T>().RowCount;
+
+    public static T? GetRow<T>(uint rowId, uint subRowId = uint.MaxValue, ClientLanguage? language = null) where T : ExcelRow
+        => GetSheet<T>(language).GetRow(rowId, subRowId);
+
+    public static T? FindRow<T>(Func<T?, bool> predicate) where T : ExcelRow
+        => GetSheet<T>().FirstOrDefault(predicate, null);
+
+    public static IEnumerable<T> FindRows<T>(Func<T?, bool> predicate) where T : ExcelRow
+        => GetSheet<T>().Where(predicate);
 
 }
