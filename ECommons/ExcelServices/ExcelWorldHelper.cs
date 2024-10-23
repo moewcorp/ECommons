@@ -102,10 +102,6 @@ public static class ExcelWorldHelper
     [Obfuscation(Exclude = true)]
     public enum Region
     {
-        JP = 1,
-        NA = 2,
-        EU = 3,
-        OC = 4,
         国服 = 5,
     }
 
