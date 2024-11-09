@@ -118,24 +118,6 @@ public static unsafe partial class GenericHelpers
         }
     }
 
-    public static string ParamsPlaceholderPrefix = "$";
-    public static string Params(this string? defaultValue, params object?[] objects)
-    {
-        defaultValue ??= "";
-        var guid = Guid.NewGuid().ToString();
-        defaultValue = defaultValue.Replace($"{ParamsPlaceholderPrefix}{ParamsPlaceholderPrefix}", guid);
-        for(var i = 0; i < objects.Length; i++)
-        {
-            var str = objects[i]?.ToString() ?? "";
-            defaultValue = defaultValue.Replace($"{ParamsPlaceholderPrefix}{i}", str);
-        }
-        foreach(var obj in objects)
-        {
-            defaultValue = defaultValue.ReplaceFirst(ParamsPlaceholderPrefix, obj?.ToString() ?? "");
-        }
-        return defaultValue.Replace(guid, ParamsPlaceholderPrefix);
-    }
-
     /// <summary>
     /// Returns random element from <paramref name="enumerable"/>.
     /// </summary>
@@ -826,6 +808,8 @@ public static unsafe partial class GenericHelpers
         return Addon->IsVisible && Addon->UldManager.LoadedState == AtkLoadState.Loaded && Addon->IsFullyLoaded();
     }
 
+    public static bool IsReady(this AtkUnitBase Addon) => Addon.IsVisible && Addon.UldManager.LoadedState == AtkLoadState.Loaded && Addon.IsFullyLoaded();
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool IsAddonReady(AtkComponentNode* Addon)
     {
@@ -1391,6 +1375,13 @@ public static unsafe partial class GenericHelpers
     {
         return values.Any(x => x.Equals(obj));
     }
+
+    public static uint ToUInt(this ushort value) => value;
+    public static uint ToUInt(this byte value) => value;
+    public static uint ToUInt(this int value) => (uint)value;
+    public static int ToInt(this byte value) => value;
+    public static int ToInt(this ushort value) => value;
+    public static int ToInt(this uint value) => (int)value;
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static bool AllNull(params object[] objects) => objects.All(s => s == null);
