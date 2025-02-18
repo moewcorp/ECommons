@@ -2,6 +2,7 @@
 using FFXIVClientStructs.FFXIV.Client.UI;
 using FFXIVClientStructs.FFXIV.Component.GUI;
 using System;
+using AtkEvent = FFXIVClientStructs.FFXIV.Component.GUI.AtkEvent;
 
 namespace ECommons.UIHelpers.AddonMasterImplementations;
 public abstract unsafe class AddonMasterBase<T> : IAddonMasterBase where T : unmanaged
@@ -77,14 +78,32 @@ public abstract unsafe class AddonMasterBase<T> : IAddonMasterBase where T : unm
         return false;
     }
 
+    protected bool ClickCheckboxIfEnabled(AtkComponentCheckBox* checkbox)
+    {
+        if (checkbox->IsEnabled && checkbox->AtkResNode->IsVisible())
+        {
+            checkbox->ClickCheckBox(Base);
+            checkbox->SetChecked(true);
+            return true;
+        }
+        return false;
+    }
+
     protected AtkEvent CreateAtkEvent(byte flags = 0)
     {
-        return new()
+        var ret = stackalloc AtkEvent[]
         {
-            Listener = (AtkEventListener*)Base,
-            Flags = flags,
-            Target = &AtkStage.Instance()->AtkEventTarget
+            new()
+            {
+                Listener = (AtkEventListener*)Base,
+                Target = &AtkStage.Instance()->AtkEventTarget,
+                State = new()
+                {
+                    StateFlags = (AtkEventStateFlags)flags
+                }
+            } 
         };
+        return *ret;
     }
 
     protected AtkEventDataBuilder CreateAtkEventData()

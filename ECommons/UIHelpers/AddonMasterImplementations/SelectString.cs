@@ -17,8 +17,8 @@ public partial class AddonMaster
         public SelectString(void* addon) : base(addon) { }
 
         public int EntryCount => Addon->PopupMenu.PopupMenu.EntryCount;
-        public SeString SeString => MemoryHelper.ReadSeString(&Base->GetTextNodeById(2)->NodeText);
-        public string Text => SeString.ExtractText();
+        public SeString SeString => GenericHelpers.ReadSeString(&Base->GetTextNodeById(2)->NodeText);
+        public string Text => SeString.GetText();
 
         public AtkComponentList* ListComponent => Addon->GetComponentListById(3);
         public List<Pointer<AtkComponentListItemRenderer>> ListItems
@@ -59,7 +59,7 @@ public partial class AddonMaster
 
             public readonly AtkTextNode* TextNode => am.ListItems[Index].Value->ButtonTextNode;
             public readonly SeString SeString => MemoryHelper.ReadSeStringNullTerminated((nint)Addon->PopupMenu.PopupMenu.EntryNames[Index]);
-            public readonly string Text => SeString.ExtractText();
+            public readonly string Text => SeString.GetText();
 
             public readonly void Select()
             {

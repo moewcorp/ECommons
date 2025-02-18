@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.IO.Pipes;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -14,21 +15,26 @@ using System.Threading;
 namespace ECommons.Configuration;
 public static class ExternalWriter
 {
-    private static BlockingCollection<FileSaveStruct>? FileSaveRequests;
+    private static BlockingCollection<FileSaveStruct>? FileSaveRequests = [];
     private static bool ThreadIsRunning = false;
-    private static bool Disposed = false;
+    private volatile static bool Disposed = false;
 
     public static void PlaceWriteOrder(FileSaveStruct order)
     {
-        FileSaveRequests ??= [];
-        if(!FileSaveRequests.TryAdd(order))
+        if (FileSaveRequests == null)
+        {
+            PluginLog.Warning($"[FileWriterServer] FileSaveRequests is null, cannot place write order.");
+            return;
+        }
+
+        if (!FileSaveRequests.TryAdd(order))
         {
             PluginLog.Warning($"[FileWriterServer] PlaceWriteOrder failed, trying on another tick");
             Svc.Framework.RunOnTick(() => PlaceWriteOrder(order));
         }
         else
         {
-            if(!ThreadIsRunning)
+            if (!ThreadIsRunning)
             {
                 ThreadIsRunning = true;
                 BeginThread();
@@ -40,6 +46,7 @@ public static class ExternalWriter
     {
         Disposed = true;
         FileSaveRequests?.CompleteAdding();
+        FileSaveRequests?.Dispose();
     }
 
     static readonly string[] FileNames = ["ECommons.FileWriter.dll", "ECommons.FileWriter.deps.json", "ECommons.FileWriter.runtimeconfig.json"];
@@ -60,9 +67,14 @@ public static class ExternalWriter
                         {
                             var sourcePath = Path.Combine(Svc.PluginInterface.AssemblyLocation.DirectoryName!, x);
                             var copyPath = Path.Combine(Svc.PluginInterface.ConfigDirectory.FullName, x);
-                            if(!(File.Exists(copyPath) && FilesAreEqual(new(sourcePath), new(copyPath))))
+                            if(!File.Exists(copyPath) || !FilesAreEqual(new(sourcePath), new(copyPath)))
                             {
-                                File.Copy(sourcePath, copyPath);
+                                PluginLog.Information($"Copying {sourcePath}->{copyPath}");
+                                File.Copy(sourcePath, copyPath, true);
+                            }
+                            else
+                            {
+                                PluginLog.Information($"Files equal: {sourcePath}={copyPath}");
                             }
                         }
                         var dllPath = Path.Combine(Svc.PluginInterface.ConfigDirectory.FullName, "ECommons.FileWriter.dll");
@@ -154,10 +166,10 @@ public static class ExternalWriter
 
     public class FileSaveStruct
     {
-        public string? Name { get; set; }
-        public byte[]? Data { get; set; }
-        public byte[]? NameHash { get; set; }
-        public byte[]? DataHash { get; set; }
+        [Obfuscation] public string? Name { get; set; }
+        [Obfuscation] public byte[]? Data { get; set; }
+        [Obfuscation] public byte[]? NameHash { get; set; }
+        [Obfuscation]public byte[]? DataHash { get; set; }
 
         public FileSaveStruct(string name, string data)
         {

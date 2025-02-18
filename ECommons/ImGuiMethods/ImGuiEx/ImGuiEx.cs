@@ -7,9 +7,10 @@ using ECommons.ExcelServices;
 using ECommons.Funding;
 using ECommons.Logging;
 using ECommons.MathHelpers;
+using ECommons.Throttlers;
 using FFXIVClientStructs.FFXIV.Client.Game;
 using ImGuiNET;
-using Lumina.Excel.GeneratedSheets;
+using Lumina.Excel.Sheets;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -17,6 +18,7 @@ using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Xml.Linq;
 using Action = System.Action;
 
 namespace ECommons.ImGuiMethods;
@@ -24,8 +26,34 @@ namespace ECommons.ImGuiMethods;
 
 public static unsafe partial class ImGuiEx
 {
-    public const ImGuiWindowFlags OverlayFlags = ImGuiWindowFlags.NoNav | ImGuiWindowFlags.NoMouseInputs | ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoFocusOnAppearing;
+    public static readonly ImGuiWindowFlags OverlayFlags = ImGuiWindowFlags.NoNav | ImGuiWindowFlags.NoMouseInputs | ImGuiWindowFlags.NoDecoration | ImGuiWindowFlags.NoBackground | ImGuiWindowFlags.NoSavedSettings | ImGuiWindowFlags.NoFocusOnAppearing;
+    public static readonly ImGuiTableFlags DefaultTableFlags = ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders | ImGuiTableFlags.SizingFixedFit;
     private static Dictionary<string, int> SelectedPages = [];
+
+    public static bool BeginDefaultTable(string[] headers, bool drawHeader = true)
+    {
+        return BeginDefaultTable("##ECommonsDefaultTable", headers, drawHeader);
+    }
+
+    public static bool BeginDefaultTable(string id, string[] headers, bool drawHeader = true)
+    {
+        if(ImGui.BeginTable(id, headers.Length, DefaultTableFlags))
+        {
+            DefaultTableColumns(headers, drawHeader);
+            return true;
+        }
+        return false;
+    }
+
+    public static void DefaultTableColumns(IEnumerable<string> headers, bool drawHeader = true)
+    {
+        foreach(var x in headers)
+        {
+            var stretch = x.StartsWith('~');
+            ImGui.TableSetupColumn(stretch ? x[1..] : x, stretch ? ImGuiTableColumnFlags.WidthStretch : ImGuiTableColumnFlags.None);
+        }
+        if(drawHeader) ImGui.TableHeadersRow();
+    }
 
     public static string ImGuiTrim(this string str)
     {
@@ -45,6 +73,81 @@ public static unsafe partial class ImGuiEx
     {
         if(text.Length > len) return text[..len] + "...";
         return text;
+    }
+
+    public static bool InputFancyNumeric(string label, ref int number, int step)
+    {
+        var str = $"{number:N0}";
+        var lbl = label.StartsWith("##") ? label : $"##{label}";
+        var ret = ImGui.InputText(lbl, ref str, 50, ImGuiInputTextFlags.AutoSelectAll);
+        var btn = false;
+        if(step > 0)
+        {
+            ImGui.SameLine(0, 1);
+            if(ImGui.Button($"-##minus{label}", new(ImGui.GetFrameHeight())))
+            {
+                ret = true;
+                number -= step;
+                btn = true;
+            }
+            if(ImGui.IsItemHovered() && ImGui.GetIO().MouseDownDuration[0] > 0.5f && EzThrottler.Throttle("FancyInputHold", 50))
+            {
+                ret = true;
+                number -= step;
+                btn = true;
+            }
+            ImGui.SameLine(0, 1);
+            if(ImGui.Button($"+##plus{label}", new(ImGui.GetFrameHeight())))
+            {
+                ret = true;
+                number += step;
+                btn = true;
+            }
+            if(ImGui.IsItemHovered() && ImGui.GetIO().MouseDownDuration[0] > 0.5f && EzThrottler.Throttle("FancyInputHold", 50))
+            {
+                ret = true;
+                number += step;
+                btn = true;
+            }
+        }
+        if(ret && !btn)
+        {
+            var mult = 1;
+            str = str.Trim();
+            if(str == "")
+            {
+                number = 0;
+            }
+            else
+            {
+                var negative = str[0] == '-';
+                if(negative)
+                {
+                    str = str[1..];
+                }
+                while(str.EndsWith("M", StringComparison.OrdinalIgnoreCase))
+                {
+                    mult *= 1000000;
+                    str = str[0..^1];
+                }
+                while(str.EndsWith("K", StringComparison.OrdinalIgnoreCase))
+                {
+                    mult *= 1000;
+                    str = str[0..^1];
+                }
+                if(int.TryParse(str, NumberStyles.AllowThousands, null, out var result))
+                {
+                    number = result * mult;
+                    if(negative) number *= -1;
+                }
+            }
+        }
+        if(!label.StartsWith("##"))
+        {
+            ImGui.SameLine();
+            ImGuiEx.Text(label);
+        }
+        return ret || btn;
     }
 
     /// <summary>
@@ -301,19 +404,36 @@ public static unsafe partial class ImGuiEx
 
     }
 
-    /// <summary>Selectable item made from TreeNode with bullet mark in front</summary>
-    /// <inheritdoc cref="Selectable(Vector4?, string, ref bool, ImGuiTreeNodeFlags)"/>
-    public static bool Selectable(Vector4? color, string id)
+    public static bool Selectable(Vector4? color, string id, bool enabled = true)
     {
-        var ret = ImGuiEx.TreeNode(color, id, ImGuiTreeNodeFlags.NoTreePushOnOpen | ImGuiTreeNodeFlags.Leaf);
+        if(!enabled) ImGui.PushStyleVar(ImGuiStyleVar.Alpha, ImGui.GetStyle().Alpha * 0.6f);
+        if(color != null) ImGui.PushStyleColor(ImGuiCol.Text, color.Value);
+        var ret = ImGui.Selectable(id) && enabled;
+        if(color != null) ImGui.PopStyleColor();
+        if(!enabled) ImGui.PopStyleVar();
         return ret;
     }
 
-    /// <inheritdoc cref="Selectable(Vector4?, string)"/>
-    public static bool Selectable(string id) => Selectable(null, id);
+    public static bool Selectable(string id, bool enabled = true)
+    {
+        return Selectable(null, id, enabled);
+    }
 
-    /// <inheritdoc cref="Selectable(Vector4?, string)"/>
-    public static bool Selectable(string id, ref bool selected) => Selectable(null, id, ref selected);
+    /// <summary>Selectable item made from TreeNode with bullet mark in front</summary>
+    /// <inheritdoc cref="SelectableNode(Vector4?, string, ref bool, ImGuiTreeNodeFlags, bool)"/>
+    public static bool SelectableNode(Vector4? color, string id, bool enabled = true)
+    {
+        if(!enabled) ImGui.PushStyleVar(ImGuiStyleVar.Alpha, ImGui.GetStyle().Alpha * 0.6f);
+        var ret = ImGuiEx.TreeNode(color, id, ImGuiTreeNodeFlags.NoTreePushOnOpen | ImGuiTreeNodeFlags.Leaf) && enabled;
+        if(!enabled) ImGui.PopStyleVar();
+        return ret;
+    }
+
+    /// <inheritdoc cref="SelectableNode(Vector4?, string, bool)"/>
+    public static bool SelectableNode(string id, bool enabled = true) => SelectableNode(null, id, enabled);
+
+    /// <inheritdoc cref="SelectableNode(Vector4?, string, bool)"/>
+    public static bool SelectableNode(string id, ref bool selected, bool enabled = true) => SelectableNode(null, id, ref selected, enabled:enabled);
 
 
     /// <summary>
@@ -323,12 +443,15 @@ public static unsafe partial class ImGuiEx
     /// <param name="id">ImGui ID</param>
     /// <param name="selected">Selected state storage field</param>
     /// <param name="extraFlags">Extra tree node flags</param>
+    /// <param name="enabled">Whether node is enabled</param>
     /// <returns><see langword="true"/> when clicked</returns>
-    public static bool Selectable(Vector4? color, string id, ref bool selected, ImGuiTreeNodeFlags extraFlags = ImGuiTreeNodeFlags.Leaf)
+    public static bool SelectableNode(Vector4? color, string id, ref bool selected, ImGuiTreeNodeFlags extraFlags = ImGuiTreeNodeFlags.Leaf, bool enabled = true)
     {
+        if(!enabled) ImGui.PushStyleVar(ImGuiStyleVar.Alpha, ImGui.GetStyle().Alpha * 0.6f);
         ImGuiEx.TreeNode(color, id, ImGuiTreeNodeFlags.NoTreePushOnOpen | (selected ? ImGuiTreeNodeFlags.Selected : ImGuiTreeNodeFlags.None) | extraFlags);
-        var ret = ImGui.IsItemClicked(ImGuiMouseButton.Left);
+        var ret = enabled && ImGui.IsItemClicked(ImGuiMouseButton.Left);
         if(ret) selected = !selected;
+        if(!enabled) ImGui.PopStyleVar();
         return ret;
     }
 
@@ -771,7 +894,7 @@ public static unsafe partial class ImGuiEx
     /// <param name="value">Value</param>
     /// <param name="smallButton">Whether button should be small</param>
     /// <returns>true when clicked, otherwise false</returns>
-    public static bool ButtonCheckbox(string name, ref bool value, bool smallButton = false) => ButtonCheckbox(name, ref value, EColor.Red, smallButton);
+    public static bool ButtonCheckbox(string name, ref bool value, bool smallButton) => ButtonCheckbox(name, ref value, EColor.Red, smallButton);
 
     /// <summary>
     /// Draws a button that acts like a checkbox.
@@ -1279,13 +1402,13 @@ public static unsafe partial class ImGuiEx
         ImGui.PopStyleColor();
     }
 
-    public static void Text(Vector4 col, ImFontPtr font, string s)
+    public static void Text(Vector4? col, ImFontPtr? font, string s)
     {
-        ImGui.PushFont(font);
-        ImGui.PushStyleColor(ImGuiCol.Text, col);
+        if(font != null) ImGui.PushFont(font.Value);
+        if(col != null)ImGui.PushStyleColor(ImGuiCol.Text, col.Value);
         ImGui.TextUnformatted(s);
-        ImGui.PopStyleColor();
-        ImGui.PopFont();
+        if(col != null)ImGui.PopStyleColor();
+        if(font != null) ImGui.PopFont();
     }
 
     public static void Text(uint col, string s)
@@ -1465,7 +1588,7 @@ public static unsafe partial class ImGuiEx
     public static bool EnumCombo<T>(string name, ref T refConfigField, Func<T, bool> filter = null, IDictionary<T, string> names = null) where T : Enum, IConvertible
     {
         var ret = false;
-        if(ImGui.BeginCombo(name, (names != null && names.TryGetValue(refConfigField, out var n)) ? n : refConfigField.ToString().Replace("_", " ")))
+        if(ImGui.BeginCombo(name, (names != null && names.TryGetValue(refConfigField, out var n)) ? n : refConfigField.ToString().Replace("_", " "), ImGuiComboFlags.HeightLarge))
         {
             var values = Enum.GetValues(typeof(T));
             Box<string> fltr = null;
@@ -1574,7 +1697,7 @@ public static unsafe partial class ImGuiEx
 
     public static bool SmallButton(string label, bool enabled = true)
     {
-        if(!enabled) ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.6f);
+        if(!enabled) ImGui.PushStyleVar(ImGuiStyleVar.Alpha, ImGui.GetStyle().Alpha * 0.6f);
         var ret = ImGui.SmallButton(label) && enabled;
         if(!enabled) ImGui.PopStyleVar();
         return ret;
@@ -1582,7 +1705,7 @@ public static unsafe partial class ImGuiEx
 
     public static bool Button(string label, bool enabled = true)
     {
-        if(!enabled) ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.6f);
+        if(!enabled) ImGui.PushStyleVar(ImGuiStyleVar.Alpha, ImGui.GetStyle().Alpha * 0.6f);
         var ret = ImGui.Button(label) && enabled;
         if(!enabled) ImGui.PopStyleVar();
         return ret;
@@ -1590,7 +1713,7 @@ public static unsafe partial class ImGuiEx
 
     public static bool Button(string label, Vector2 size, bool enabled = true)
     {
-        if(!enabled) ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.6f);
+        if(!enabled) ImGui.PushStyleVar(ImGuiStyleVar.Alpha, ImGui.GetStyle().Alpha * 0.6f);
         var ret = ImGui.Button(label, size) && enabled;
         if(!enabled) ImGui.PopStyleVar();
         return ret;
@@ -1599,7 +1722,7 @@ public static unsafe partial class ImGuiEx
     public static bool IconButton(string icon, string id = "ECommonsButton", Vector2 size = default, bool enabled = true)
     {
         ImGui.PushFont(UiBuilder.IconFont);
-        if(!enabled) ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.6f);
+        if(!enabled) ImGui.PushStyleVar(ImGuiStyleVar.Alpha, ImGui.GetStyle().Alpha * 0.6f);
         var result = ImGui.Button($"{icon}##{icon}-{id}", size) && enabled;
         if(!enabled) ImGui.PopStyleVar();
         ImGui.PopFont();
@@ -1608,7 +1731,7 @@ public static unsafe partial class ImGuiEx
 
     public static bool IconButtonWithText(FontAwesomeIcon icon, string id, bool enabled = true)
     {
-        if(!enabled) ImGui.PushStyleVar(ImGuiStyleVar.Alpha, 0.6f);
+        if(!enabled) ImGui.PushStyleVar(ImGuiStyleVar.Alpha, ImGui.GetStyle().Alpha * 0.6f);
         var result = ImGuiComponents.IconButtonWithText(icon, $"{id}") && enabled;
         if(!enabled) ImGui.PopStyleVar();
         return result;
