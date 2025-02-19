@@ -40,7 +40,7 @@ public static partial class GenericHelpers
 #else
                 ImGui.SetClipboardText(text);
 #endif
-                if(!silent) Notify.Success("Text copied to clipboard");
+                if(!silent) Notify.Success("文本已复制到剪贴板");
             }
             return true;
         }
