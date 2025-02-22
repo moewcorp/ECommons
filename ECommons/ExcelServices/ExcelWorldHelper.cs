@@ -63,7 +63,7 @@ public static class ExcelWorldHelper
 
     public static World[] GetPublicWorlds(Region? region = null)
     {
-        return Svc.Data.GetExcelSheet<World>().Where(x => x.RowId > 1000 && x.IsPublic() && (region == null || x.GetRegion() == region.Value)).ToArray();
+        return Svc.Data.GetExcelSheet<World>().Where(x => (x.IsPublic() || x.RowId > 1000) && (region == null || x.GetRegion() == region.Value)).ToArray();
     }
 
     public static World[] GetPublicWorlds(uint dataCenter)
