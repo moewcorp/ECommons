@@ -1,8 +1,10 @@
-﻿using ECommons.DalamudServices;
+﻿using Dalamud.Utility;
+using ECommons.DalamudServices;
 using ECommons.ImGuiMethods;
 using ECommons.Logging;
 using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -18,8 +20,27 @@ namespace ECommons.Configuration;
 /// </summary>
 public static class EzConfig
 {
-    public static string? PluginConfigDirectoryOverride { get; set; } =  null;
-    public static bool UseExternalWriter = false;
+    public static string? PluginConfigDirectoryOverride { get; set; } = null;
+    public static bool UseExternalWriter
+    {
+        get
+        {
+            return field;
+        }
+        set
+        {
+            if(Util.GetHostPlatform() != OSPlatform.Windows)
+            {
+                field = false;
+                PluginLog.Warning($"External file writer is only supported on Windows. OS detected: {Util.GetHostPlatform()}. External file writer is disabled.");
+            }
+            else
+            {
+                field = value;
+            }
+        }
+    } = false;
+
     public static string GetPluginConfigDirectory()
     {
         if(PluginConfigDirectoryOverride == null) return Svc.PluginInterface.GetPluginConfigDirectory();
