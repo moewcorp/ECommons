@@ -1,13 +1,9 @@
-﻿
-using ECommons.DalamudServices;
-using ECommons.ImGuiMethods;
+﻿using ECommons.ImGuiMethods;
 using ECommons.Logging;
+using ECommons.WindowsFormsReflector;
 using ImGuiNET;
 using System;
 using System.Collections.Generic;
-#if (DEBUGFORMS || RELEASEFORMS)
-using System.Windows.Forms;
-#endif
 
 namespace ECommons;
 public static partial class GenericHelpers
@@ -24,21 +20,13 @@ public static partial class GenericHelpers
         {
             if(text.IsNullOrEmpty())
             {
-#if (DEBUGFORMS || RELEASEFORMS)
-                Clipboard.Clear();
-#else
-                Svc.Framework.RunOnFrameworkThread(() => ImGui.SetClipboardText(""));
-#endif
-                if(!silent) Notify.Success("Clipboard cleared");
+                Winforms.Clipboard.Clear();
+                if(!silent) Notify.Success("剪贴板已清除");
             }
             else
             {
-#if (DEBUGFORMS || RELEASEFORMS)
-                Clipboard.SetText(text);
-#else
-                Svc.Framework.RunOnFrameworkThread(() => ImGui.SetClipboardText(text));
-#endif
-                if(!silent) Notify.Success("文本已复制到剪贴板");
+                Winforms.Clipboard.SetText(text);
+                if(!silent) Notify.Success("已复制到剪贴板");
             }
             return true;
         }
@@ -46,7 +34,7 @@ public static partial class GenericHelpers
         {
             if(!silent)
             {
-                Notify.Error($"Error copying to clipboard:\n{e.Message}\nPlease try again");
+                Notify.Error($"复制到剪贴板时出错：\n{e.Message}\n请重试");
             }
             PluginLog.Warning($"Error copying to clipboard:");
             e.LogWarning();
@@ -55,23 +43,16 @@ public static partial class GenericHelpers
     }
 
     /// <summary>
-    /// Reads text from user's clipboard
+    /// Reads text from user's clipboard using Windows Forms
     /// </summary>
     /// <param name="silent">Whether to display popup when error occurs.</param>
     /// <returns>Contents of the clipboard; null if clipboard couldn't be read.</returns>
     /// <remarks>Be sure to run on the framework/draw thread if using ImGui to avoid potential crashes.</remarks>
-#if !(DEBUGFORMS || RELEASEFORMS)
-    [Obsolete("You have selected not to use Windows Forms; pasting will be done via ImGui. This has been known to cause serious issues in past. If you are working with clipboard a lot, consider enabling Windows Forms.")]
-#endif
     public static string? Paste(bool silent = false)
     {
         try
         {
-#if (DEBUGFORMS || RELEASEFORMS)
-            return Clipboard.GetText();
-#else
-            return ImGui.GetClipboardText();
-#endif
+            return Winforms.Clipboard.GetText();
         }
         catch(Exception e)
         {
@@ -84,8 +65,6 @@ public static partial class GenericHelpers
             return null;
         }
     }
-
-#if (DEBUGFORMS || RELEASEFORMS)
 
     /// <summary>
     /// Checks if a key is pressed via winapi.
@@ -103,5 +82,4 @@ public static partial class GenericHelpers
         }
         return false;
     }
-#endif
 }

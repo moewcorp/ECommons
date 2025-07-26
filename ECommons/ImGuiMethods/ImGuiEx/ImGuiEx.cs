@@ -30,6 +30,96 @@ public static unsafe partial class ImGuiEx
     public static readonly ImGuiTableFlags DefaultTableFlags = ImGuiTableFlags.NoSavedSettings | ImGuiTableFlags.RowBg | ImGuiTableFlags.Borders | ImGuiTableFlags.SizingFixedFit;
     private static Dictionary<string, int> SelectedPages = [];
 
+    public static bool FilteringInputTextWithHint(string label, string hint, out string result, uint maxLength = 200)
+    {
+        var ret = false;
+        ref var value = ref Ref<string>.Get($"{ImGui.GetID(label)}_filter");
+        if(ImGui.InputTextWithHint(label, hint, ref value, maxLength))
+        {
+            ret = true;
+        }
+        result = value;
+        return ret;
+    }
+
+    public static bool FilteringCheckbox(string label, out bool result)
+    {
+        var ret = false;
+        ref var value = ref Ref<bool>.Get($"{ImGui.GetID(label)}_filter");
+        if(ImGui.Checkbox(label, ref value))
+        {
+            ret = true;
+        }
+        result = value;
+        return ret;
+    }
+
+    public static void DragDropRepopulate<T>(string identifier, T id, Action<T> callback) where T : unmanaged
+    {
+        ImGuiEx.Tooltip("Drag this selector to other selectors to set their values to the same");
+        if(ImGui.BeginDragDropSource(ImGuiDragDropFlags.SourceNoPreviewTooltip))
+        {
+            try
+            {
+                ImGuiDragDrop.SetDragDropPayload<T>(identifier, id);
+                ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeAll);
+            }
+            catch(Exception e)
+            {
+                e.Log();
+            }
+            ImGui.EndDragDropSource();
+        }
+        if(ImGui.BeginDragDropTarget())
+        {
+            try
+            {
+                if(ImGuiDragDrop.AcceptDragDropPayload<T>(identifier, out var outId, ImGuiDragDropFlags.AcceptBeforeDelivery | ImGuiDragDropFlags.AcceptNoPreviewTooltip))
+                {
+                    callback(outId);
+                }
+            }
+            catch(Exception e)
+            {
+                e.Log();
+            }
+            ImGui.EndDragDropTarget();
+        }
+    }
+
+    public static void DragDropRepopulate<T>(string identifier, T id, ref T field) where T : unmanaged
+    {
+        ImGuiEx.Tooltip("Drag this selector to other selectors to set their values to the same");
+        if(ImGui.BeginDragDropSource(ImGuiDragDropFlags.SourceNoPreviewTooltip))
+        {
+            try
+            {
+                ImGuiDragDrop.SetDragDropPayload<T>(identifier, id);
+                ImGui.SetMouseCursor(ImGuiMouseCursor.ResizeAll);
+            }
+            catch(Exception e)
+            {
+                e.Log();
+            }
+            ImGui.EndDragDropSource();
+        }
+        if(ImGui.BeginDragDropTarget())
+        {
+            try
+            {
+                if(ImGuiDragDrop.AcceptDragDropPayload<T>(identifier, out var outId, ImGuiDragDropFlags.AcceptBeforeDelivery | ImGuiDragDropFlags.AcceptNoPreviewTooltip))
+                {
+                    field = outId;
+                }
+            }
+            catch(Exception e)
+            {
+                e.Log();
+            }
+            ImGui.EndDragDropTarget();
+        }
+    }
+
     /// <seealso cref="Scale(float)"/>
     public static Vector2? Scale(this Vector2? v)
     {
@@ -904,35 +994,37 @@ public static unsafe partial class ImGuiEx
     public static void EzTabBar(string id, string KoFiTransparent, string openTabName, params (string name, Action function, Vector4? color, bool child)[] tabs) => EzTabBar(id, KoFiTransparent, openTabName, ImGuiTabBarFlags.None, tabs);
     public static void EzTabBar(string id, string KoFiTransparent, string openTabName, ImGuiTabBarFlags flags, params (string name, Action function, Vector4? color, bool child)[] tabs)
     {
-        ImGui.BeginTabBar(id, flags);
-        foreach(var x in tabs)
+        if(ImGui.BeginTabBar(id, flags))
         {
-            if(x.name == null) continue;
-            if(x.color != null)
+            foreach(var x in tabs)
             {
-                ImGui.PushStyleColor(ImGuiCol.Text, x.color.Value);
-            }
-            if(BeginTabItem(x.name, openTabName == x.name ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None))
-            {
+                if(x.name == null) continue;
                 if(x.color != null)
                 {
-                    ImGui.PopStyleColor();
+                    ImGui.PushStyleColor(ImGuiCol.Text, x.color.Value);
                 }
-                if(x.child) ImGui.BeginChild(x.name + "child");
-                x.function();
-                if(x.child) ImGui.EndChild();
-                ImGui.EndTabItem();
-            }
-            else
-            {
-                if(x.color != null)
+                if(BeginTabItem(x.name, openTabName == x.name ? ImGuiTabItemFlags.SetSelected : ImGuiTabItemFlags.None))
                 {
-                    ImGui.PopStyleColor();
+                    if(x.color != null)
+                    {
+                        ImGui.PopStyleColor();
+                    }
+                    if(x.child) ImGui.BeginChild(x.name + "child");
+                    x.function();
+                    if(x.child) ImGui.EndChild();
+                    ImGui.EndTabItem();
+                }
+                else
+                {
+                    if(x.color != null)
+                    {
+                        ImGui.PopStyleColor();
+                    }
                 }
             }
+            if(KoFiTransparent != null) PatreonBanner.RightTransparentTab();
+            ImGui.EndTabBar();
         }
-        if(KoFiTransparent != null) PatreonBanner.RightTransparentTab();
-        ImGui.EndTabBar();
     }
 
     public static bool Ctrl => ImGui.GetIO().KeyCtrl;
