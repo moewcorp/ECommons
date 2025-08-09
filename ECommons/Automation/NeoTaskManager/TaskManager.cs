@@ -2,7 +2,6 @@
 using ECommons.Logging;
 using System;
 using System.Collections.Generic;
-using TerraFX.Interop.Windows;
 
 namespace ECommons.Automation.NeoTaskManager;
 /// <summary>
@@ -30,7 +29,7 @@ public partial class TaskManager : IDisposable
     public int MaxTasks { get; private set; } = 0;
     public int NumQueuedTasks => Tasks.Count + (CurrentTask == null ? 0 : 1);
 
-    public float Progress => MaxTasks == 0 ? 0 : (float)(MaxTasks - NumQueuedTasks) / (float)MaxTasks;
+    public float Progress => MaxTasks == 0 ? 0 : (MaxTasks - NumQueuedTasks) / (float)MaxTasks;
 
     /// <summary>
     /// Indicates whether TaskManager is currently executing tasks
@@ -140,6 +139,8 @@ public partial class TaskManager : IDisposable
             var ShowDebug = CurrentTask.Configuration?.ShowDebug ?? DefaultConfiguration.ShowDebug!.Value;
             var ShowError = CurrentTask.Configuration?.ShowError ?? DefaultConfiguration.ShowError!.Value;
             var ExecuteDefaultConfigurationEvents = CurrentTask.Configuration?.ExecuteDefaultConfigurationEvents ?? DefaultConfiguration.ExecuteDefaultConfigurationEvents!.Value;
+
+            var currentTaskReference = CurrentTask;
 
             if(NumQueuedTasks > MaxTasks) MaxTasks = NumQueuedTasks;
             try
@@ -254,13 +255,13 @@ public partial class TaskManager : IDisposable
                     }
                 }
             }
-            try
+            if(currentTaskReference != null)
             {
-                if(CurrentTask.Configuration == null || ExecuteDefaultConfigurationEvents)
+                if(currentTaskReference.Configuration == null || ExecuteDefaultConfigurationEvents)
                 {
-                    DefaultConfiguration.FireCompanionAction(CurrentTask);
+                    DefaultConfiguration.FireCompanionAction(currentTaskReference);
                 }
-                CurrentTask.Configuration?.FireCompanionAction(CurrentTask);
+                currentTaskReference.Configuration?.FireCompanionAction(currentTaskReference);
             }
             return;
         }
