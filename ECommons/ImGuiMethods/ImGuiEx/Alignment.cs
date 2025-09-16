@@ -1,4 +1,4 @@
-﻿using ImGuiNET;
+﻿using Dalamud.Bindings.ImGui;
 using System;
 using System.Collections.Generic;
 using System.Numerics;
@@ -62,7 +62,7 @@ public static unsafe partial class ImGuiEx
     {
         if(CenteredLineWidths.TryGetValue(id, out var dims))
         {
-            ImGui.SetCursorPosX(ImGui.GetContentRegionAvail().X / 2 - dims / 2);
+            ImGui.SetCursorPosX(ImGui.GetCursorPosX() + ImGui.GetContentRegionAvail().X / 2 - dims / 2);
         }
         var oldCur = ImGui.GetCursorPosX();
         func();

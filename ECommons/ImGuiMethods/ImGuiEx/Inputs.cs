@@ -1,10 +1,11 @@
 ﻿using Dalamud.Interface.Utility;
 using ECommons.Throttlers;
-using ImGuiNET;
+using Dalamud.Bindings.ImGui;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Numerics;
 
 namespace ECommons.ImGuiMethods;
 public static partial class ImGuiEx
@@ -108,7 +109,37 @@ public static partial class ImGuiEx
         if(!enabled) ImGui.BeginDisabled();
         ImGui.SameLine();
         ImGui.SetNextItemWidth(width);
-        var ret = ImGui.InputInt(label, ref value, step, step_fast, flags);
+        var ret = ImGui.InputInt(label, ref value, step, step_fast, flags: flags);
+        if(ret) valueNullable = value;
+        if(!enabled) ImGui.EndDisabled();
+        return ret || chk;
+    }
+
+    /// <summary>
+    /// An <see cref="ImGui.InputFloat(ImU8String, ref float, float, float, ImU8String, ImGuiInputTextFlags)"/> for nullable int. Consists of checkbox and input component that is enabled/disabled based on checkbox state.
+    /// </summary>
+    /// <param name="width"></param>
+    /// <param name="label"></param>
+    /// <param name="valueNullable"></param>
+    /// <param name="step"></param>
+    /// <param name="step_fast"></param>
+    /// <param name="flags"></param>
+    /// <returns></returns>
+    public static bool InputFloat(float width, string label, ref float? valueNullable, int step = 1, int step_fast = 100, ImGuiInputTextFlags flags = ImGuiInputTextFlags.None)
+    {
+        ImGui.PushID($"NullableInputFloat{label}");
+        var enabled = valueNullable != null;
+        var chk = ImGui.Checkbox($"##checkbox", ref enabled);
+        if(chk)
+        {
+            valueNullable = enabled ? 0 : null;
+        }
+        ImGui.PopID();
+        var value = valueNullable ?? 0;
+        if(!enabled) ImGui.BeginDisabled();
+        ImGui.SameLine();
+        ImGui.SetNextItemWidth(width);
+        var ret = ImGui.InputFloat(label, ref value, step, step_fast, flags: flags);
         if(ret) valueNullable = value;
         if(!enabled) ImGui.EndDisabled();
         return ret || chk;
@@ -200,22 +231,22 @@ public static partial class ImGuiEx
         return ret;
     }
 
-    public static unsafe bool InputTextWrapMultilineExpanding(string id, ref string text, uint maxLength = 500, int minLines = 2, int maxLines = 10, int? width = null)
+    public static unsafe bool InputTextWrapMultilineExpanding(string id, ref string text, int maxLength = 500, int minLines = 2, int maxLines = 10, int? width = null)
     {
         var wrapWidth = width ?? ImGui.GetContentRegionAvail().X; // determine wrap width
         var result = ImGui.InputTextMultiline(id, ref text, maxLength,
             new(width ?? ImGui.GetContentRegionAvail().X, ImGui.CalcTextSize("A").Y * Math.Clamp(text.Split("\n").Length + 1, minLines, maxLines)),
             ImGuiInputTextFlags.CallbackEdit, // flag stuff 
-            (data) =>
+            (ref ImGuiInputTextCallbackData data) =>
             {
-                return TextEditCallback(data, wrapWidth); // Callback Action
+                return TextEditCallback(ref data, wrapWidth); // Callback Action
             });
         return result;
     }
 
-    public static bool InputTextMultilineExpanding(string id, ref string text, uint maxLength = 500, int minLines = 2, int maxLines = 10, int? width = null)
+    public static bool InputTextMultilineExpanding(string id, ref string text, int maxLength = 500, int minLines = 2, int maxLines = 10, int? width = null)
     {
-        return ImGui.InputTextMultiline(id, ref text, maxLength, new(width ?? ImGui.GetContentRegionAvail().X, ImGui.CalcTextSize("A").Y * Math.Clamp(text.Split("\n").Length + 1, minLines, maxLines)));
+        return ImGui.InputTextMultiline(id, ref text, maxLength, new Vector2(width ?? ImGui.GetContentRegionAvail().X, ImGui.CalcTextSize("A").Y * Math.Clamp(text.Split("\n").Length + 1, minLines, maxLines)));
     }
 
     private static Dictionary<string, Box<string>> InputListValuesString = [];
@@ -265,7 +296,7 @@ public static partial class ImGuiEx
             {
                 var id = $"{name}ECommonsDeleItem{i}";
                 var x = list[i];
-                ImGui.Selectable($"{(overrideValues != null && overrideValues.ContainsKey(x) ? overrideValues[x] : x)}");
+                ImGui.Selectable($"{(overrideValues != null && overrideValues.ContainsKey(x) ? overrideValues[x] : x.ToString())}");
                 if(ImGui.IsItemClicked(ImGuiMouseButton.Right))
                 {
                     ImGui.OpenPopup(id);
@@ -411,7 +442,7 @@ public static partial class ImGuiEx
     public static bool EnumCombo<T>(string name, ref Nullable<T> refConfigField, Func<T, bool> filter = null, IDictionary<T, string> names = null, string nullName = "Not selected") where T : struct, Enum, IConvertible
     {
         var ret = false;
-        if(ImGui.BeginCombo(name, refConfigField == null?nullName:((names != null && names.TryGetValue(refConfigField.Value, out var n)) ? n : refConfigField.Value.ToString().Replace("_", " ")), ImGuiComboFlags.HeightLarge))
+        if(ImGui.BeginCombo(name, refConfigField == null ? nullName : ((names != null && names.TryGetValue(refConfigField.Value, out var n)) ? n : refConfigField.Value.ToString().Replace("_", " ")), ImGuiComboFlags.HeightLarge))
         {
             var values = Enum.GetValues(typeof(T));
             Box<string> fltr = null;
@@ -516,7 +547,7 @@ public static partial class ImGuiEx
         suffix?.Invoke();
         if(sameLine) ImGui.SameLine();
         prefix?.Invoke();
-        if(ImGui.RadioButton(inverted?labelTrue:labelFalse, value == inverted)) value = inverted;
+        if(ImGui.RadioButton(inverted ? labelTrue : labelFalse, value == inverted)) value = inverted;
         suffix?.Invoke();
     }
 }
