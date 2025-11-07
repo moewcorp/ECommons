@@ -2,7 +2,6 @@ using ECommons.DalamudServices;
 using Lumina.Excel.Sheets;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 
@@ -68,7 +67,7 @@ public static class ExcelWorldHelper
 
     public static World[] GetPublicWorlds(uint dataCenter)
     {
-        return Svc.Data.GetExcelSheet<World>().Where(x => x.DataCenter.RowId == dataCenter).ToArray();
+        return Svc.Data.GetExcelSheet<World>().Where(x => (x.IsPublic() || x.RowId > 1000) && x.DataCenter.RowId == dataCenter).ToArray();
     }
 
     public static WorldDCGroupType[] GetDataCenters(Region? region = null, bool checkForPublicWorlds = false)
