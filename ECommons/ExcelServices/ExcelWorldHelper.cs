@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using static FFXIVClientStructs.FFXIV.Client.UI.Misc.DataCenterHelper;
 
 namespace ECommons.ExcelServices;
 #nullable disable
@@ -65,9 +66,14 @@ public static class ExcelWorldHelper
         return Svc.Data.GetExcelSheet<World>().Where(x => (x.IsPublic() || x.RowId > 1000) && (region == null || x.GetRegion() == region.Value)).ToArray();
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="dataCenter">0 - all data centers</param>
+    /// <returns></returns>
     public static World[] GetPublicWorlds(uint dataCenter)
     {
-        return Svc.Data.GetExcelSheet<World>().Where(x => (x.IsPublic() || x.RowId > 1000) && x.DataCenter.RowId == dataCenter).ToArray();
+        return Svc.Data.GetExcelSheet<World>().Where(x => (x.IsPublic() || x.RowId > 1000) && (dataCenter == 0 || x.DataCenter.RowId == dataCenter)).ToArray();
     }
 
     public static WorldDCGroupType[] GetDataCenters(Region? region = null, bool checkForPublicWorlds = false)
