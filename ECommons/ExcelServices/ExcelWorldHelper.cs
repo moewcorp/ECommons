@@ -1,4 +1,4 @@
-using ECommons.DalamudServices;
+﻿using ECommons.DalamudServices;
 using Lumina.Excel.Sheets;
 using System;
 using System.Collections.Generic;
@@ -19,6 +19,15 @@ public static class ExcelWorldHelper
     public static bool IsPublic(this World w)
     {
         if(w.IsPublic) return true;
+        if(Svc.ClientState.ClientLanguage >= (Dalamud.Game.ClientLanguage)4)
+        {
+            //TODO: somehow differentiate CN, KR, TW
+            //104	豆豆柴	8	104	5	False
+#pragma warning disable RS0030
+            if(w.RowId > 1000 && w.UserType.EqualsAny<byte>(101, 201)) return true;
+            //.EqualsAny<uint>(1180, 1183, 1186, 1192, 1200, 1201)
+#pragma warning restore RS0030
+        }
         return false;//w.RowId.EqualsAny<uint>(408, 409, 410, 411, 415);
     }
 
@@ -26,7 +35,7 @@ public static class ExcelWorldHelper
     {
         if(name == null) return null;
         if(NameCache.TryGetValue(name, out var world)) return world;
-        if(Svc.Data.GetExcelSheet<World>().TryGetFirst(x => x.Name.ToString().EqualsIgnoreCase(name) && (!onlyPublic || x.Region.EqualsAny(Enum.GetValues<Region>().Select(z => (byte)z).ToArray())), out var result))
+        if(Svc.Data.GetExcelSheet<World>().OrderBy(x => !x.RowId.EqualsAny<uint>(1180, 1183, 1186, 1192, 1200, 1201)).TryGetFirst(x => x.Name.ToString().EqualsIgnoreCase(name) && (!onlyPublic || x.GetRegion().EqualsAny(Enum.GetValues<Region>())), out var result))
         {
             NameCache[name] = result;
             return result;
@@ -37,7 +46,7 @@ public static class ExcelWorldHelper
     public static World? Get(uint id, bool onlyPublic = false)
     {
         var result = Svc.Data.GetExcelSheet<World>().GetRowOrDefault(id);
-        if(result != null && (!onlyPublic || result.Value.Region.EqualsAny(Enum.GetValues<Region>().Select(z => (byte)z).ToArray())))
+        if(result != null && (!onlyPublic || result.Value.GetRegion().EqualsAny(Enum.GetValues<Region>().Select(z => z))))
         {
             return result;
         }
