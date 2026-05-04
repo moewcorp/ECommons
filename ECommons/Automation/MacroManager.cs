@@ -39,10 +39,6 @@ public static unsafe class MacroManager
         {
             throw new InvalidOperationException("Macro was more than 15 lines!");
         }
-        if(commands.Any(x => x.Encode().Length > 180))
-        {
-            throw new InvalidOperationException("Macro contained lines more than 180 symbols!");
-        }
         if(commands.Any(x => x.TextValue is var str && (str.Contains('\n') || str.Contains('\r') || str.Contains('\0') || Chat.SanitiseText(str).Length != str.Length)))
         {
             throw new InvalidOperationException("Macro contained invalid symbols!");
